@@ -5,12 +5,12 @@
 
 ## Objectif
 
-**Imprint** — outil macOS **sans terminal** permettant à un utilisateur non
-technique (un photographe) d'appliquer les **légendes d'un fichier
-Excel/CSV** aux **métadonnées de ses fichiers TIFF**, en remplacement d'une
-procédure ExifTool en ligne de commande jugée trop compliquée.
+**Imprint** — outil macOS **sans terminal** permettant à un photographe (ou
+n'importe quel utilisateur non technique) d'appliquer les **légendes d'un
+fichier Excel/CSV** aux **métadonnées de ses fichiers TIFF**, en remplacement
+d'une procédure ExifTool en ligne de commande jugée trop compliquée.
 
-Cible : MacBook Pro Apple Silicon (M2/M3), macOS Tahoe (26).
+Cible : Apple Silicon (M1/M2/M3/M4), macOS 14+.
 
 ## Comportement attendu
 
@@ -106,11 +106,11 @@ Options :
 
 ## État / ce qui a été vérifié
 
-- ✅ Parseur testé sur les vrais fichiers (`captions.xlsx` et
-  `.csv`) : 23 légendes associées, 0 manquante, multilignes + accents OK.
+- ✅ Parseur testé sur des fixtures réelles (Excel et CSV) : ~23 légendes
+  associées, 0 manquante, multilignes + accents OK.
 - ✅ Pipeline `codesign` + DMG + notarisation Apple end-to-end (2026-05-29).
-- ✅ Écriture ExifTool sur de vrais TIFF, validée par l'utilisateur (Bridge/Photoshop
-  affichent correctement la « Description », accents OK).
+- ✅ Écriture ExifTool validée sur de vrais TIFF : Bridge/Photoshop
+  affichent correctement la « Description », accents OK.
 - ✅ Compilation SwiftUI release, 540 Ko de binaire, aucun warning.
 - ⚠️ **Mode strict Swift 6** : non testé. Les captures mutables ont été
   encapsulées dans `ExifToolRunState` mais le projet compile en mode Swift 5
@@ -138,5 +138,5 @@ Options :
 ## Notes de contexte
 
 - Le dossier parent (`../`) contenait les TIFF de test + les fichiers de
-  légendes d'origine (lot « test »). Le dépôt Git ne suit que `legendes-tiff/`.
+  légendes d'origine. Le dépôt Git ne suit que `legendes-tiff/`.
 - Préférences de l'utilisateur (Jeremy) : réponses concises et directes.
