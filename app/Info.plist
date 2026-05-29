@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Légender les photos</string>
+    <string>Imprint</string>
     <key>CFBundleDisplayName</key>
-    <string>Légender les photos</string>
+    <string>Imprint</string>
     <key>CFBundleIdentifier</key>
-    <string>com.jeremyfrere.legenderlesphotos</string>
+    <string>com.jeremyfrere.imprint</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
     <key>CFBundleShortVersionString</key>
@@ -16,6 +16,8 @@
     <string>APPL</string>
     <key>CFBundleExecutable</key>
     <string>run</string>
+    <key>CFBundleIconFile</key>
+    <string>Imprint</string>
     <key>LSMinimumSystemVersion</key>
     <string>10.13</string>
     <key>NSHighResolutionCapable</key>

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-#  Légender les photos  —  exécutable de l'app macOS
+#  Imprint  —  exécutable de l'app macOS
 #
 #  Au double-clic, cette app :
 #    1. demande le dossier contenant les TIFF + le fichier Excel/CSV de légendes
@@ -14,8 +14,8 @@
 # =============================================================================
 set -u
 
-TITLE="Légender les photos"
-SUPPORT="$HOME/Library/Application Support/Legender les photos"
+TITLE="Imprint"
+SUPPORT="$HOME/Library/Application Support/Imprint"
 
 # Répertoire Resources de l'app (l'exécutable est dans Contents/MacOS/)
 CONTENTS="$(cd "$(dirname "$0")/.." && pwd)"

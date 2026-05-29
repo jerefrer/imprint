@@ -1,5 +1,9 @@
 # Artéfacts de build (régénérés par build_app.sh)
 dist/
+.build-tmp/
+
+# Icône compilée (régénérée depuis Imprint.icon/ par app/make_icns.sh)
+app/Imprint.icns
 
 # Divers macOS
 .DS_Store
