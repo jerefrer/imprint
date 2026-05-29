@@ -28,39 +28,58 @@ Cible : MacBook Pro Apple Silicon (M2/M3), macOS Tahoe (26).
 ## Architecture
 
 ```
-app/Info.plist         # bundle .app (CFBundleName = Imprint, icône Imprint.icns)
-app/run                # exécutable bash : UI via osascript, orchestration
-app/parse_sheet.pl     # parseur xlsx/csv -> CSV compatible ExifTool (Perl cœur uniquement)
-app/make_icns.sh       # génère app/Imprint.icns depuis Imprint.icon/Assets/*.jpg
-app/Imprint.icns       # icône compilée (gitignorée, régénérée au build)
-Imprint.icon/          # source de l'icône (format Icon Composer) – source de vérité
-build_app.sh           # assemble app/ -> dist/.app, signe, notarise, produit DMG
-dist/                  # artéfacts de build (gitignoré)
-GUIDE-Mathieu.md       # notice pas-à-pas pour l'utilisateur final
-README.md              # doc technique
+Package.swift                  # manifeste SwiftPM (cible macOS 14)
+Sources/Imprint/
+  ImprintApp.swift             # @main, fenêtre
+  ContentView.swift            # racine, switch sur AppState
+  DropZoneView.swift           # zone drag-drop + NSOpenPanel
+  ProcessingView.swift         # progression (déterminée ou indéterminée)
+  SummaryView.swift            # résumé + liste de fichiers avec checkmarks
+  ErrorView.swift              # état d'erreur
+  ImprintEngine.swift          # orchestration : trouve sheet, lance parse_sheet.pl,
+                               # installe ExifTool, lance exiftool en streaming
+  Models.swift                 # AppState, ProcessSummary, FileResult, ImprintError
+  Theme.swift                  # palette crème/sépia tirée de l'icône
+app/Info.plist                 # bundle .app (CFBundleExecutable = Imprint, icône Imprint.icns)
+app/parse_sheet.pl             # parseur xlsx/csv -> CSV compatible ExifTool (Perl cœur uniquement)
+app/make_icns.sh               # génère app/Imprint.icns depuis Imprint.icon/Assets/*.jpg
+app/Imprint.icns               # icône compilée (gitignorée, régénérée au build)
+Imprint.icon/                  # source de l'icône (image 1024×1024 + icon.json Icon Composer)
+build_app.sh                   # swift build + assemblage bundle + sign + DMG + notarise
+dist/                          # artéfacts de build (gitignoré)
+.build/                        # cache SwiftPM (gitignoré)
+README.md                      # README utilisateur (sexy, simple)
 ```
 
-- **Pas de binaire compilé** : l'exécutable du bundle est un script shell,
-  lancé par `/bin/bash` (déjà signé Apple) → pas de problème de signature
-  Mach-O sur Apple Silicon.
+- **Architecture** : SwiftUI natif pour l'UI (drag-drop, progression, résumé).
+  Le binaire Mach-O appelle `parse_sheet.pl` (Perl) et `exiftool` (Perl aussi)
+  comme child processes via `Process`. ExifTool streame son `-progress` sur
+  stdout, `ImprintEngine` parse les lignes `========` pour mettre à jour la
+  progression en temps réel.
 - **`parse_sheet.pl`** n'utilise que des modules du cœur de Perl
   (`IO::Uncompress::Unzip` pour décompresser le `.xlsx`). `/usr/bin/perl` suffit
   (présent sur macOS, vérifié encore présent sur Tahoe). Gère : séparateur `,`
   ou `;`, BOM UTF-8, guillemets, `""` échappés, **champs multilignes**.
-- **ExifTool** : non bundlé. L'app le télécharge automatiquement au 1er lancement
-  depuis exiftool.org (lit `ver.txt`, récupère le tarball) dans
-  `~/Library/Application Support/Imprint/`. Cherche d'abord un ExifTool déjà
-  installé (`/usr/local/bin`, `/opt/homebrew/bin`, PATH).
+  Sortie : CSV stdout pour exiftool ; stderr avec `ASSOCIES=N`, `NON_TROUVES=N`,
+  `TIF_SANS_LEGENDE=N` et la liste de chaque fichier sous chaque section.
+- **ExifTool** : non bundlé. `ImprintEngine.ensureExifTool()` cherche
+  `/usr/local/bin/exiftool`, `/opt/homebrew/bin/exiftool`, puis le PATH,
+  puis `~/Library/Application Support/Imprint/Image-ExifTool-VERSION/`,
+  puis télécharge depuis exiftool.org (URLSession + tar).
 - Écriture forcée UTF-8 (`-codedcharacterset=utf8`), dates de fichier préservées
   (`-P`), originaux écrasés en place (`-overwrite_original`).
-- La détection du tableau **ignore** les fichiers temporaires/verrous
-  (`~$*.xlsx` d'Excel, `.~lock.*` de LibreOffice, fichiers cachés). Si un seul
-  tableau reste, il est utilisé sans demander ; si plusieurs, un menu s'affiche.
+- La détection du tableau (dans `ImprintEngine.findSheet`) **ignore** les
+  fichiers temporaires/verrous (`~$*.xlsx`, `.~lock.*`, fichiers cachés). Si
+  plusieurs candidats, préfère le `.xlsx` ; sinon lève `ImprintError.multipleSheets`.
 - **Icône** : source dans `Imprint.icon/Assets/image-766264921340.jpg`
   (polaroid vintage + traits de plume, 1024×1024). `app/make_icns.sh` la
   convertit en `.icns` multi-résolution via `sips` + `iconutil`. Le format Icon
   Composer (`Imprint.icon/icon.json`) n'est pas utilisé en l'état : l'image est
   une icône finie, pas une couche pour le rendu Liquid Glass.
+- **Concurrence Swift 6** : l'état mutable partagé entre les readability
+  handlers d'ExifTool est encapsulé dans une classe `ExifToolRunState`
+  (`@unchecked Sendable`) pour éviter les captures mutables interdites en
+  strict concurrency mode.
 
 ## Construire & signer
 
@@ -88,16 +107,14 @@ Options :
 ## État / ce qui a été vérifié
 
 - ✅ Parseur testé sur les vrais fichiers (`Legendes_MR_Bhoutan_UTF8.xlsx` et
-  `.csv`) : 23 légendes associées, 0 manquante, multilignes + accents OK,
-  CSV de sortie relu sans erreur par le module `csv` de Python.
-- ✅ Syntaxe bash validée (`bash -n`), filtrage des fichiers temporaires testé.
-- ✅ Pipeline `codesign` + DMG fonctionnel en local (test 2026-05-29).
-- ⚠️ **Notarisation jamais exécutée jusqu'au bout** : credentials non encore
-  stockées. À faire via `./build_app.sh --setup-credentials` la première fois.
-- ⚠️ **Étape ExifTool non exécutée** dans l'environnement de dev (pas d'accès
-  réseau vers exiftool.org). À **tester une fois sur un vrai Mac** sur une copie
-  d'un ou deux TIFF avant diffusion : vérifier que la légende apparaît bien dans
-  le champ « Description » de Bridge/Photoshop et que les accents sont corrects.
+  `.csv`) : 23 légendes associées, 0 manquante, multilignes + accents OK.
+- ✅ Pipeline `codesign` + DMG + notarisation Apple end-to-end (2026-05-29).
+- ✅ Écriture ExifTool sur de vrais TIFF, validée par Mathieu (Bridge/Photoshop
+  affichent correctement la « Description », accents OK).
+- ✅ Compilation SwiftUI release, 540 Ko de binaire, aucun warning.
+- ⚠️ **Mode strict Swift 6** : non testé. Les captures mutables ont été
+  encapsulées dans `ExifToolRunState` mais le projet compile en mode Swift 5
+  (warnings traités).
 
 ## Gatekeeper / diffusion
 
@@ -108,10 +125,11 @@ Options :
 
 ## TODO / pistes d'évolution
 
-- [ ] Tester réellement l'écriture ExifTool sur un Mac (priorité).
-- [ ] GUI native SwiftUI (drag-and-drop, progression, résumé checklist).
-      Voir discussion dans la conversation 2026-05-29.
+- [x] GUI native SwiftUI (drag-and-drop, progression, résumé checklist) — fait
+      sur la branche feature/swiftui-ui le 2026-05-29.
+- [ ] Screenshots de l'app pour le README et la future page GitHub Pages.
 - [ ] Page GitHub Pages de présentation (univers polaroid vintage de l'icône).
+- [ ] Universal binary (arm64 + x86_64) pour les Macs Intel restants.
 - [ ] Mémoriser le dernier dossier utilisé (par ex. dans le dossier Support).
 - [ ] Colonnes optionnelles supplémentaires : mots-clés (`IPTC:Keywords`),
       titre (`Headline`), auteur/copyright.

@@ -79,8 +79,17 @@ fi
 
 mkdir -p "$DIST"
 
-# --- 1. Build du bundle ------------------------------------------------------
-echo "→ Construction du bundle"
+# --- 1. Compilation Swift ----------------------------------------------------
+echo "→ Compilation de l'app Swift (release)"
+(
+    cd "$HERE"
+    swift build -c release --arch arm64 2>&1 | sed 's/^/   /'
+)
+BIN="$HERE/.build/arm64-apple-macosx/release/Imprint"
+[ -x "$BIN" ] || { echo "❌ Binaire Imprint introuvable après compilation : $BIN" >&2; exit 5; }
+
+# --- 2. Assemblage du bundle .app -------------------------------------------
+echo "→ Assemblage du bundle .app"
 # Régénère l'icône .icns depuis la source si absente
 if [ ! -f "$SRC/Imprint.icns" ]; then
     echo "  (régénération de Imprint.icns)"
@@ -89,12 +98,12 @@ fi
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$SRC/Info.plist"      "$APP/Contents/Info.plist"
-cp "$SRC/run"             "$APP/Contents/MacOS/run"
+cp "$BIN"                 "$APP/Contents/MacOS/Imprint"
 cp "$SRC/parse_sheet.pl"  "$APP/Contents/Resources/parse_sheet.pl"
 cp "$SRC/Imprint.icns"    "$APP/Contents/Resources/Imprint.icns"
-chmod +x "$APP/Contents/MacOS/run"
+chmod +x "$APP/Contents/MacOS/Imprint"
 
-# --- 2. Signature de l'app (hardened runtime, requis pour notarisation) -----
+# --- 3. Signature de l'app (hardened runtime, requis pour notarisation) -----
 if [ "$DO_SIGN" -eq 1 ]; then
     if ! security find-identity -v -p codesigning | grep -qF "$SIGN_IDENTITY"; then
         echo "❌ Identité de signature introuvable dans le trousseau :" >&2
@@ -110,7 +119,7 @@ if [ "$DO_SIGN" -eq 1 ]; then
     codesign --verify --strict --verbose=2 "$APP" 2>&1 | sed 's/^/   /'
 fi
 
-# --- 3. Construction du DMG (glisser-déposer dans Applications) -------------
+# --- 4. Construction du DMG (glisser-déposer dans Applications) -------------
 echo "→ Construction du DMG"
 # Nettoyage d'éventuels artefacts précédents
 STAGE="$(/usr/bin/mktemp -d /tmp/imprint-dmg.XXXXXX)"
@@ -123,14 +132,14 @@ ln -s /Applications "$STAGE/Applications"
     "$DMG" >/dev/null
 rm -rf "$STAGE"
 
-# --- 4. Signature du DMG (recommandé) ---------------------------------------
+# --- 5. Signature du DMG (recommandé) ---------------------------------------
 if [ "$DO_SIGN" -eq 1 ]; then
     echo "→ Signature du DMG"
     codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
     codesign --verify --verbose=2 "$DMG" 2>&1 | sed 's/^/   /'
 fi
 
-# --- 5. Notarisation + agrafage sur le DMG ----------------------------------
+# --- 6. Notarisation + agrafage sur le DMG ----------------------------------
 if [ "$DO_NOTARIZE" -eq 1 ]; then
     if ! xcrun notarytool history --keychain-profile "$KEYCHAIN_PROFILE" >/dev/null 2>&1; then
         cat >&2 <<EOF
@@ -157,7 +166,7 @@ EOF
     spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG" 2>&1 | sed 's/^/   /' || true
 fi
 
-# --- 6. Résumé ---------------------------------------------------------------
+# --- 7. Résumé ---------------------------------------------------------------
 echo
 echo "OK :"
 echo "  $APP"
