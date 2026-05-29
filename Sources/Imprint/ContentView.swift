@@ -34,12 +34,18 @@ struct ContentView: View {
                 .interpolation(.high)
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 28, height: 28)
+                // Coupe l'anti-aliasing résiduel du bord du squircle qui crée
+                // une frange claire visible à petite taille sur fond crème.
+                .clipShape(RoundedRectangle(cornerRadius: 6.3, style: .continuous))
             Text("Imprint")
                 .font(Theme.headingFont)
                 .foregroundStyle(Theme.ink)
             Spacer()
         }
-        .padding(.horizontal, 24)
+        // Padding gauche élargie pour laisser passer les feux tricolores
+        // (la barre de titre est cachée via .windowStyle(.hiddenTitleBar)).
+        .padding(.leading, 80)
+        .padding(.trailing, 24)
         .padding(.vertical, 14)
         .background(Theme.paper)
         .overlay(

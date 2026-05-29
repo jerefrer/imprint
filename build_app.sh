@@ -90,9 +90,11 @@ BIN="$HERE/.build/arm64-apple-macosx/release/Imprint"
 
 # --- 2. Assemblage du bundle .app -------------------------------------------
 echo "→ Assemblage du bundle .app"
-# Régénère l'icône .icns depuis la source si absente
-if [ ! -f "$SRC/Imprint.icns" ]; then
-    echo "  (régénération de Imprint.icns)"
+# Régénère l'icône .icns si elle manque OU si la source a été modifiée depuis
+ICNS="$SRC/Imprint.icns"
+ICON_SRC="$HERE/Imprint.icon/Assets/image-766264921340.jpg"
+if [ ! -f "$ICNS" ] || { [ -f "$ICON_SRC" ] && [ "$ICON_SRC" -nt "$ICNS" ]; }; then
+    echo "  (régénération de Imprint.icns depuis la source)"
     "$SRC/make_icns.sh"
 fi
 rm -rf "$APP"
@@ -157,7 +159,8 @@ EOF
     echo "→ Envoi du DMG à Apple pour notarisation (≈ 1 à 5 min)…"
     xcrun notarytool submit "$DMG" \
         --keychain-profile "$KEYCHAIN_PROFILE" \
-        --wait
+        --wait \
+        --verbose
 
     echo "→ Agrafage du ticket de notarisation sur le DMG"
     xcrun stapler staple "$DMG"

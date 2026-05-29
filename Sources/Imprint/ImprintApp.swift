@@ -6,6 +6,7 @@ struct ImprintApp: App {
         Window("Imprint", id: "imprint-main") {
             ContentView()
         }
+        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .commands {
             CommandGroup(replacing: .newItem) {}
