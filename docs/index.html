@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Imprint — Caption your TIFFs in a single drop</title>
+  <meta name="description" content="A tiny macOS app that writes captions from an Excel or CSV file into the metadata of your TIFF photos. Drag, drop, done." />
+  <link rel="icon" type="image/png" href="icon.png" />
+  <meta property="og:title" content="Imprint" />
+  <meta property="og:description" content="Caption your TIFFs in a single drop." />
+  <meta property="og:image" content="icon.png" />
+  <meta property="og:type" content="website" />
+  <style>
+    :root {
+      --paper: #F2E8D5;
+      --paper-deep: #E2D4B7;
+      --paper-soft: #EBDEC5;
+      --ink: #5C3A21;
+      --ink-soft: #7B4F31;
+      --muted: #9F8466;
+      --accent: #5A8F5A;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.6;
+      font-weight: 400;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      /* Subtle paper grain */
+      background-image:
+        radial-gradient(at 20% 10%, rgba(196, 165, 116, 0.07), transparent 50%),
+        radial-gradient(at 80% 90%, rgba(146, 102, 56, 0.06), transparent 50%);
+    }
+
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 96px 32px 64px;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      margin-bottom: 72px;
+    }
+
+    .app-icon {
+      width: 168px;
+      height: 168px;
+      margin-bottom: 28px;
+      filter: drop-shadow(0 12px 28px rgba(92, 58, 33, 0.18));
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+
+    h1 {
+      font-family: ui-serif, "New York", Cambria, Georgia, serif;
+      font-size: clamp(48px, 8vw, 72px);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+
+    .tagline {
+      font-family: ui-serif, "New York", Cambria, Georgia, serif;
+      font-style: italic;
+      color: var(--ink-soft);
+      font-size: clamp(18px, 2.4vw, 22px);
+      margin-bottom: 40px;
+    }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 15px 32px;
+      background: var(--ink);
+      color: var(--paper);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 16px;
+      border-radius: 999px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      box-shadow: 0 6px 20px rgba(92, 58, 33, 0.22);
+    }
+    .cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(92, 58, 33, 0.32);
+      background: #4A2F1A;
+    }
+    .cta::after {
+      content: "→";
+      transition: transform 0.2s ease;
+    }
+    .cta:hover::after {
+      transform: translateX(3px);
+    }
+
+    .cta-meta {
+      display: block;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Screenshot */
+    .screenshot {
+      margin: 0 auto 96px;
+      max-width: 800px;
+    }
+    .screenshot img {
+      width: 100%;
+      height: auto;
+      border-radius: 14px;
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.7) inset,
+        0 2px 8px rgba(92, 58, 33, 0.08),
+        0 24px 64px -8px rgba(92, 58, 33, 0.22);
+    }
+
+    /* How it works */
+    .how {
+      margin-bottom: 96px;
+    }
+    .how h2 {
+      font-family: ui-serif, "New York", Cambria, Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(28px, 4vw, 36px);
+      text-align: center;
+      letter-spacing: -0.01em;
+      margin-bottom: 56px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+
+    .step {
+      text-align: center;
+      padding: 8px 12px;
+    }
+
+    .step .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      background: var(--paper-soft);
+      border: 1px solid var(--paper-deep);
+      color: var(--ink);
+      font-family: ui-serif, "New York", Cambria, Georgia, serif;
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .step h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .step p {
+      font-size: 14px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+    }
+
+    .step code {
+      background: var(--paper-soft);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 12.5px;
+      color: var(--ink);
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding-top: 48px;
+      border-top: 1px solid var(--paper-deep);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    footer a {
+      color: var(--ink-soft);
+      text-decoration: none;
+      border-bottom: 1px solid var(--paper-deep);
+      padding-bottom: 1px;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    footer a:hover {
+      color: var(--ink);
+      border-bottom-color: var(--ink-soft);
+    }
+
+    /* Mobile */
+    @media (max-width: 720px) {
+      main { padding: 64px 24px 48px; }
+      .hero { margin-bottom: 56px; }
+      .app-icon { width: 132px; height: 132px; }
+      .steps { grid-template-columns: 1fr; gap: 16px; }
+      .screenshot { margin-bottom: 64px; }
+      .how { margin-bottom: 64px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <img src="icon.png" alt="Imprint" class="app-icon" />
+      <h1>Imprint</h1>
+      <p class="tagline">Caption your TIFFs in a single drop.</p>
+      <a class="cta" href="https://github.com/jerefrer/imprint/releases/latest">Download Imprint</a>
+      <span class="cta-meta">Apple Silicon Mac · macOS 14 or later</span>
+    </section>
+
+    <section class="screenshot">
+      <img src="screenshot.png" alt="Imprint window with a drag-and-drop zone" />
+    </section>
+
+    <section class="how">
+      <h2>How it works</h2>
+      <div class="steps">
+        <div class="step">
+          <span class="num">1</span>
+          <h3>Gather</h3>
+          <p>Put your <code>.tif</code> photos and your caption file — Excel or CSV — in the same folder.</p>
+        </div>
+        <div class="step">
+          <span class="num">2</span>
+          <h3>Drop</h3>
+          <p>Drag the folder into Imprint, or click to choose it.</p>
+        </div>
+        <div class="step">
+          <span class="num">3</span>
+          <h3>Done</h3>
+          <p>Captions land in the <em>Description</em> field, ready for Bridge, Photoshop, Lightroom, agencies.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>By <a href="https://github.com/jerefrer">Jeremy</a> · <a href="https://github.com/jerefrer/imprint">Source on GitHub</a></p>
+    </footer>
+  </main>
+</body>
+</html>
