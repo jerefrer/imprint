@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Import signing certificate into a temporary keychain
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
+
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          security import "$CERT_PATH" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Met le trousseau temporaire en tête de la search list
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain
+
+          echo "→ Identités de signature disponibles :"
+          security find-identity -v -p codesigning
+
+      - name: Store notarytool credentials in the temporary keychain
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun notarytool store-credentials "imprint-notarize" \
+            --apple-id  "$APPLE_ID" \
+            --team-id   "$APPLE_TEAM_ID" \
+            --password  "$APPLE_PASSWORD"
+
+      - name: Build, sign, notarize and stamp the DMG
+        env:
+          SIGN_IDENTITY:    ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          KEYCHAIN_PROFILE: imprint-notarize
+          APPLE_ID:         ${{ secrets.APPLE_ID }}
+          TEAM_ID:          ${{ secrets.APPLE_TEAM_ID }}
+        run: ./build_app.sh
+
+      - name: Verify the DMG
+        run: |
+          set -euo pipefail
+          spctl --assess --type open --context context:primary-signature -v dist/Imprint.dmg
+          ls -lh dist/Imprint.dmg
+
+      - name: Create GitHub Release with DMG attached
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Imprint.dmg
+          name: Imprint ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
