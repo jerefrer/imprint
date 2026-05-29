@@ -1,10 +1,10 @@
-# Légender les photos
+# Imprint
 
 Petit outil macOS, sans terminal, qui applique les légendes d'un fichier
 **Excel (.xlsx)** ou **CSV** aux fichiers **TIFF** d'un dossier.
 
 Conçu pour un usage non technique : l'utilisateur double-clique sur l'app,
-choisit un dossier, et l'outil écrit la description de chaque photo dans ses
+choisit un dossier, et Imprint écrit la description de chaque photo dans ses
 métadonnées (le champ « Légende / Description » lu par Adobe Bridge, Photoshop,
 Lightroom et les agences photo).
 
@@ -13,7 +13,7 @@ Lightroom et les agences photo).
 1. L'utilisateur range, dans **un même dossier**, ses photos `.tif` et un
    fichier de légendes (`.xlsx` ou `.csv`) avec deux colonnes : **`Filename`**
    et **`Description`**.
-2. Double-clic sur **`Légender les photos.app`** → choix du dossier.
+2. Double-clic sur **`Imprint.app`** → choix du dossier.
 3. L'app lit le tableau, fait correspondre chaque ligne au fichier `.tif`
    du même nom (insensible à la casse, `MR10431.TIF` ↔ `MR10431.tif`), puis
    écrit la légende dans trois champs standard :
@@ -25,7 +25,7 @@ Lightroom et les agences photo).
 Le moteur d'écriture des métadonnées est **ExifTool** (Phil Harvey). S'il n'est
 pas déjà installé, l'app le télécharge automatiquement au premier lancement
 (Internet requis cette fois-là uniquement) dans
-`~/Library/Application Support/Legender les photos/`.
+`~/Library/Application Support/Imprint/`.
 
 ## Structure du dépôt
 
@@ -34,19 +34,39 @@ legendes-tiff/
 ├── app/
 │   ├── Info.plist          # métadonnées du bundle .app
 │   ├── run                 # exécutable (bash) : UI native + orchestration
-│   └── parse_sheet.pl      # parseur xlsx/csv → CSV compatible ExifTool (Perl, modules cœur)
-├── build_app.sh            # assemble app/ en "Légender les photos.app" + .zip
+│   ├── parse_sheet.pl      # parseur xlsx/csv → CSV compatible ExifTool (Perl, modules cœur)
+│   ├── make_icns.sh        # génère Imprint.icns depuis la source de l'icône
+│   └── Imprint.icns        # icône compilée (gitignorée, régénérée au build)
+├── Imprint.icon/           # source de l'icône (format Icon Composer / image 1024×1024)
+├── build_app.sh            # assemble app/, signe, notarise, produit le DMG
 ├── dist/                   # artéfacts de build (gitignoré)
 └── GUIDE-Mathieu.md        # notice pas-à-pas en gros caractères pour l'utilisateur final
 ```
 
-## Construire l'app
+## Construire & signer
+
+Première fois seulement — stocke le mot de passe d'app spécifique dans le trousseau :
+
+```bash
+./build_app.sh --setup-credentials
+```
+(Mot de passe à générer sur https://appleid.apple.com → *Connexion et sécurité* → *Mots de passe pour apps*.)
+
+Ensuite, à chaque release :
 
 ```bash
 ./build_app.sh
-# → dist/Légender les photos.app
-# → dist/Legender-les-photos.zip   (à envoyer ; le .zip préserve les permissions)
+# → dist/Imprint.app
+# → dist/Imprint.dmg   ← l'unique fichier à envoyer
 ```
+
+Le DMG est signé Developer ID, notarisé par Apple, et le ticket est agrafé :
+l'utilisateur final n'a aucun avertissement Gatekeeper. Il l'ouvre, glisse
+l'app dans Applications, c'est tout.
+
+Options utiles :
+- `--no-notarize` : signe seulement (rapide, hors-ligne, pour test).
+- `--no-sign` : DMG brut, non signé (développement uniquement).
 
 ## Détails techniques
 
@@ -62,37 +82,15 @@ legendes-tiff/
 - L'écriture IPTC est forcée en UTF-8 (`-codedcharacterset=utf8`) pour les
   accents ; les dates de fichier sont préservées (`-P`) ; les originaux sont
   écrasés en place (`-overwrite_original`).
-
-### Signature / Gatekeeper
-
-L'app **n'est pas signée ni notarisée**. Après un transfert (mail, AirDrop,
-téléchargement), macOS lui attache l'attribut `com.apple.quarantine` et la
-bloque au premier lancement.
-
-Sur **macOS Sequoia (15) et Tahoe (26)**, le raccourci clic-droit → Ouvrir a été
-supprimé. La première ouverture passe désormais par **Réglages Système →
-Confidentialité et sécurité → « Ouvrir quand même »** (+ mot de passe admin),
-une seule fois.
-
-Contournements :
-- **Clé USB / carte SD** : une copie depuis un volume externe via le Finder
-  n'ajoute généralement pas la quarantaine → aucun avertissement.
-- Retrait manuel de l'attribut : `xattr -dr com.apple.quarantine "Légender les photos.app"`.
-- **Notarisation** (zéro friction, recommandé pour une diffusion régulière) :
-  nécessite un compte Apple Developer, puis `codesign` + `notarytool` + `stapler`.
-
-À noter : l'exécutable est un **script shell** (lancé par `/bin/bash`, déjà signé
-par Apple), donc l'obligation de signature des binaires Mach-O sur Apple Silicon
-ne s'applique pas ici — seul l'avertissement de quarantaine Gatekeeper subsiste.
-
-> Tester localement sur la machine de build ne reproduit pas le blocage : la
-> quarantaine n'est ajoutée qu'au moment du transfert.
+- **Icône** : source dans `Imprint.icon/Assets/image-766264921340.jpg`
+  (polaroid vintage sur papier crème + traits de plume, 1024×1024). Compilée
+  en `.icns` multi-résolution par `app/make_icns.sh` (sips + iconutil).
 
 ## Reprendre avec Claude Code
 
 Le dépôt est versionné avec Git. Pistes d'évolution possibles :
-- icône d'application personnalisée ;
-- signature + notarisation Apple (supprime l'avertissement Gatekeeper) ;
+- GUI native SwiftUI (drag-and-drop, progression, résumé) ;
+- page GitHub Pages de présentation ;
 - colonnes supplémentaires (mots-clés `IPTC:Keywords`, titre `Headline`, auteur…) ;
 - mémoriser le dernier dossier utilisé ;
 - prise en charge d'autres formats d'image (JPEG, DNG…).
