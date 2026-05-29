@@ -63,11 +63,30 @@ legendes-tiff/
   accents ; les dates de fichier sont préservées (`-P`) ; les originaux sont
   écrasés en place (`-overwrite_original`).
 
-### Première ouverture sur le Mac de l'utilisateur
+### Signature / Gatekeeper
 
-L'app n'est pas signée par un développeur identifié Apple. Au tout premier
-lancement, macOS affiche un avertissement. Solution : **clic droit sur l'app →
-Ouvrir → Ouvrir**. Une seule fois ; ensuite le double-clic fonctionne normalement.
+L'app **n'est pas signée ni notarisée**. Après un transfert (mail, AirDrop,
+téléchargement), macOS lui attache l'attribut `com.apple.quarantine` et la
+bloque au premier lancement.
+
+Sur **macOS Sequoia (15) et Tahoe (26)**, le raccourci clic-droit → Ouvrir a été
+supprimé. La première ouverture passe désormais par **Réglages Système →
+Confidentialité et sécurité → « Ouvrir quand même »** (+ mot de passe admin),
+une seule fois.
+
+Contournements :
+- **Clé USB / carte SD** : une copie depuis un volume externe via le Finder
+  n'ajoute généralement pas la quarantaine → aucun avertissement.
+- Retrait manuel de l'attribut : `xattr -dr com.apple.quarantine "Légender les photos.app"`.
+- **Notarisation** (zéro friction, recommandé pour une diffusion régulière) :
+  nécessite un compte Apple Developer, puis `codesign` + `notarytool` + `stapler`.
+
+À noter : l'exécutable est un **script shell** (lancé par `/bin/bash`, déjà signé
+par Apple), donc l'obligation de signature des binaires Mach-O sur Apple Silicon
+ne s'applique pas ici — seul l'avertissement de quarantaine Gatekeeper subsiste.
+
+> Tester localement sur la machine de build ne reproduit pas le blocage : la
+> quarantaine n'est ajoutée qu'au moment du transfert.
 
 ## Reprendre avec Claude Code
 

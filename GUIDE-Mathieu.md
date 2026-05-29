@@ -43,16 +43,26 @@ les agences.
 
 ## La toute première fois : un avertissement de macOS
 
-Comme l'outil ne vient pas de l'App Store, macOS peut afficher un message du
-type *« développeur non identifié »*. C'est normal. Une seule fois :
+Comme l'outil ne vient pas de l'App Store, macOS affiche au premier lancement
+un message du type *« … n'a pas pu être ouvert car Apple ne peut pas vérifier… »*
+ou *« développeur non identifié »*. C'est normal et sans danger. À faire **une
+seule fois** :
 
-**1.** **Clic droit** (ou Contrôle + clic) sur **« Légender les photos »**.
+**1.** Double-cliquez sur **« Légender les photos »**. Le message apparaît :
+cliquez sur **OK** (ou Annuler) pour le fermer.
 
-**2.** Choisissez **Ouvrir** dans le menu.
+**2.** Ouvrez le menu  → **Réglages Système** → **Confidentialité et sécurité**.
 
-**3.** Cliquez encore sur **Ouvrir** dans la fenêtre qui apparaît.
+**3.** Descendez tout en bas : une ligne mentionne *« Légender les photos a été
+bloqué… »* avec un bouton **« Ouvrir quand même »**. Cliquez dessus.
 
-Ensuite, le simple double-clic fonctionnera toujours.
+**4.** Confirmez avec **Ouvrir**, puis saisissez votre **mot de passe** Mac.
+
+Ensuite, le simple double-clic fonctionnera toujours, sans aucun message.
+
+> 💡 **Astuce pour éviter complètement cette étape :** si on vous a remis l'app
+> sur une **clé USB** et que vous la copiez depuis la clé vers votre Mac, cet
+> avertissement n'apparaît en général pas du tout.
 
 ---
 
