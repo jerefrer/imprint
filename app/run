@@ -36,8 +36,18 @@ FOLDER="${FOLDER%/}"
 
 # --- 2. Trouver le tableau (xlsx prioritaire, sinon csv) ---------------------
 shopt -s nullglob
-sheets=( "$FOLDER"/*.xlsx "$FOLDER"/*.csv )
+candidates=( "$FOLDER"/*.xlsx "$FOLDER"/*.csv )
 shopt -u nullglob
+# Ignorer les fichiers temporaires/verrous créés quand un classeur est ouvert
+# (Excel : "~$nom.xlsx" ; LibreOffice : ".~lock.nom#"), ainsi que les fichiers cachés.
+sheets=()
+for f in "${candidates[@]}"; do
+    b="$(basename "$f")"
+    case "$b" in
+        "~"*|".~"*|.*) continue ;;
+    esac
+    sheets+=( "$f" )
+done
 if [ "${#sheets[@]}" -eq 0 ]; then
     fail "Aucun fichier Excel (.xlsx) ni CSV (.csv) trouvé dans ce dossier.\n\nPlacez votre fichier de légendes dans le même dossier que les photos, puis relancez."
 elif [ "${#sheets[@]}" -eq 1 ]; then
