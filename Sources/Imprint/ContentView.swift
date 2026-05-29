@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ContentView: View {
     @StateObject private var engine = ImprintEngine()
@@ -28,16 +29,18 @@ struct ContentView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Image(systemName: "photo.stack.fill")
-                .font(.system(size: 22, weight: .light))
-                .foregroundStyle(Theme.ink)
+            appIcon
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 28, height: 28)
             Text("Imprint")
                 .font(Theme.headingFont)
                 .foregroundStyle(Theme.ink)
             Spacer()
         }
         .padding(.horizontal, 24)
-        .padding(.vertical, 16)
+        .padding(.vertical, 14)
         .background(Theme.paper)
         .overlay(
             Rectangle()
@@ -45,5 +48,15 @@ struct ContentView: View {
                 .foregroundStyle(Theme.paperDeep),
             alignment: .bottom
         )
+    }
+
+    /// Charge l'icône de l'app depuis Contents/Resources/Imprint.icns
+    /// (résolue via CFBundleIconFile=Imprint). Repli sur un SF Symbol si
+    /// l'icône n'est pas trouvée (cas d'un dev via `swift run` sans bundle).
+    private var appIcon: Image {
+        if let nsImage = NSImage(named: "Imprint") {
+            return Image(nsImage: nsImage)
+        }
+        return Image(systemName: "photo.stack.fill")
     }
 }
