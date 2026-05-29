@@ -1,0 +1,5 @@
+# Artéfacts de build (régénérés par build_app.sh)
+dist/
+
+# Divers macOS
+.DS_Store
