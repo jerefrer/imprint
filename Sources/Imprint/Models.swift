@@ -21,12 +21,12 @@ struct ProcessingProgress {
 
     var label: String {
         switch phase {
-        case .scanning:           return "Lecture du dossier…"
-        case .installingExifTool: return "Première installation d'ExifTool…"
-        case .readingSheet:       return "Lecture du fichier de légendes…"
+        case .scanning:           return "Scanning folder…"
+        case .installingExifTool: return "Installing ExifTool (first run)…"
+        case .readingSheet:       return "Reading caption file…"
         case .stamping:
-            if total > 0 { return "Application des légendes (\(current)/\(total))" }
-            return "Application des légendes…"
+            if total > 0 { return "Imprinting captions (\(current)/\(total))" }
+            return "Imprinting captions…"
         }
     }
 
@@ -71,17 +71,17 @@ enum ImprintError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noSheetFound:
-            return "Aucun fichier Excel (.xlsx) ni CSV (.csv) trouvé dans ce dossier.\n\nPlacez votre fichier de légendes avec les photos, puis recommencez."
+            return "No Excel (.xlsx) or CSV (.csv) file found in this folder.\n\nPut your caption file next to the photos and try again."
         case .multipleSheets(let names):
-            return "Plusieurs fichiers de légendes trouvés :\n• " + names.joined(separator: "\n• ") + "\n\nGardez-en un seul dans le dossier."
+            return "Multiple caption files found:\n• " + names.joined(separator: "\n• ") + "\n\nKeep only one in the folder."
         case .parseFailed(let msg):
-            return "Lecture du fichier de légendes impossible.\n\n" + msg
+            return "Couldn’t read the caption file.\n\n" + msg
         case .noMatches:
-            return "Aucune photo du tableau ne correspond à un fichier .tif présent dans le dossier.\n\nVérifiez que les noms de la colonne « Filename » correspondent aux fichiers (la casse n'a pas d'importance)."
+            return "No photo in the spreadsheet matches any .tif file in this folder.\n\nCheck that the names in the “Filename” column match your files (case doesn’t matter)."
         case .exifToolUnavailable(let msg):
-            return "ExifTool n'a pas pu être installé : \(msg)\n\nVérifiez votre connexion Internet et recommencez (l'installation n'est nécessaire qu'une seule fois)."
+            return "ExifTool couldn’t be installed: \(msg)\n\nCheck your internet connection and try again (this is only needed the first time)."
         case .exifToolFailed(let msg):
-            return "L'écriture des légendes a échoué :\n\n" + msg
+            return "Writing captions failed:\n\n" + msg
         }
     }
 }

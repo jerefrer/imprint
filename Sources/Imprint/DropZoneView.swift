@@ -15,15 +15,15 @@ struct DropZoneView: View {
                     .animation(.easeOut(duration: 0.15), value: isHovering)
 
                 VStack(spacing: 6) {
-                    Text("Glissez ici un dossier")
+                    Text("Drop a folder here")
                         .font(Theme.titleFont)
                         .foregroundStyle(Theme.ink)
-                    Text("ou cliquez pour le choisir")
+                    Text("or click to choose one")
                         .font(.system(size: 14))
                         .foregroundStyle(Theme.inkSoft)
                 }
 
-                Text("Le dossier doit contenir vos photos .tif\net un fichier Excel ou CSV avec les colonnes\n« Filename » et « Description ».")
+                Text("The folder must contain your .tif photos\nand an Excel or CSV file with the columns\n“Filename” and “Description”.")
                     .font(Theme.bodyFont)
                     .foregroundStyle(Theme.muted)
                     .multilineTextAlignment(.center)
@@ -59,9 +59,9 @@ struct DropZoneView: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "Choisir"
-        panel.title = "Choisir un dossier"
-        panel.message = "Sélectionnez le dossier qui contient vos photos TIFF et le fichier de légendes."
+        panel.prompt = "Choose"
+        panel.title = "Choose a folder"
+        panel.message = "Select the folder containing your TIFF photos and the caption file."
         if panel.runModal() == .OK, let url = panel.url {
             onFolder(url)
         }

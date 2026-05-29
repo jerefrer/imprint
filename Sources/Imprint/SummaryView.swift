@@ -12,10 +12,10 @@ struct SummaryView: View {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: 44))
                     .foregroundStyle(Theme.success)
-                Text("Terminé")
+                Text("Done")
                     .font(Theme.titleFont)
                     .foregroundStyle(Theme.ink)
-                Text("\(summary.updatedCount) \(summary.updatedCount > 1 ? "photos légendées" : "photo légendée") dans **\(summary.folder.lastPathComponent)**")
+                Text("\(summary.updatedCount) \(summary.updatedCount > 1 ? "photos imprinted" : "photo imprinted") in **\(summary.folder.lastPathComponent)**")
                     .font(.system(size: 14))
                     .foregroundStyle(Theme.inkSoft)
                     .multilineTextAlignment(.center)
@@ -26,16 +26,16 @@ struct SummaryView: View {
             // Stats
             HStack(spacing: 24) {
                 StatPill(icon: "checkmark.circle.fill", count: summary.stampedCount,
-                         label: summary.stampedCount > 1 ? "légendées" : "légendée",
+                         label: "imprinted",
                          color: Theme.success)
                 if summary.noCaptionCount > 0 {
                     StatPill(icon: "questionmark.circle.fill", count: summary.noCaptionCount,
-                             label: "sans légende",
+                             label: "no caption",
                              color: Theme.warning)
                 }
                 if summary.missingFileCount > 0 {
                     StatPill(icon: "exclamationmark.triangle.fill", count: summary.missingFileCount,
-                             label: "sans photo",
+                             label: "no photo",
                              color: Theme.warning)
                 }
             }
@@ -63,14 +63,14 @@ struct SummaryView: View {
             // Actions
             HStack(spacing: 12) {
                 Button(action: openFolder) {
-                    Label("Ouvrir le dossier", systemImage: "folder")
+                    Label("Open folder", systemImage: "folder")
                 }
                 .buttonStyle(SecondaryButtonStyle())
 
                 Spacer()
 
                 Button(action: onReset) {
-                    Label("Légender un autre dossier", systemImage: "arrow.clockwise")
+                    Label("Imprint another folder", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(PrimaryButtonStyle())
             }
@@ -148,9 +148,9 @@ private struct FileRow: View {
 
     private var statusLabel: String {
         switch file.status {
-        case .stamped:     return "légendée"
-        case .noCaption:   return "pas de légende dans le tableau"
-        case .missingFile: return "photo absente du dossier"
+        case .stamped:     return "imprinted"
+        case .noCaption:   return "no caption in spreadsheet"
+        case .missingFile: return "photo missing from folder"
         }
     }
 }

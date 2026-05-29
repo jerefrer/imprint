@@ -13,10 +13,10 @@ struct ErrorView: View {
                 .foregroundStyle(Theme.warning)
 
             VStack(spacing: 12) {
-                Text("Impossible de continuer")
+                Text("Couldn’t continue")
                     .font(Theme.headingFont)
                     .foregroundStyle(Theme.ink)
-                Text(error.errorDescription ?? "Erreur inconnue")
+                Text(error.errorDescription ?? "Unknown error")
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.inkSoft)
                     .multilineTextAlignment(.center)
@@ -27,7 +27,7 @@ struct ErrorView: View {
             Spacer()
 
             Button(action: onReset) {
-                Label("Réessayer", systemImage: "arrow.clockwise")
+                Label("Try again", systemImage: "arrow.clockwise")
             }
             .buttonStyle(PrimaryButtonStyle())
             .padding(.bottom, 24)

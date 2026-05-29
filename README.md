@@ -1,43 +1,41 @@
 <p align="center">
-  <img src="Imprint.icon/Assets/image-766264921340.jpg" alt="Imprint" width="180" />
+  <img src="docs/icon.png" alt="Imprint" width="180" />
 </p>
 
 <h1 align="center">Imprint</h1>
 
-<p align="center"><em>Légender vos photos en un glisser-déposer.</em></p>
+<p align="center"><em>Caption your TIFFs in a single drop.</em></p>
 
 <p align="center">
-  <a href="https://github.com/jerefrer/imprint/releases/latest"><strong>Télécharger Imprint →</strong></a>
+  <a href="https://github.com/jerefrer/imprint/releases/latest"><strong>Download Imprint →</strong></a>
+</p>
+
+<p align="center">
+  <img src="docs/screenshot.png" alt="Imprint — drop a folder to caption your TIFFs" width="720" />
 </p>
 
 ---
 
-Vous avez un dossier rempli de TIFF. Vous avez un Excel avec les légendes.
-**Imprint glisse les unes dans les autres** — pas de terminal, pas de ligne de commande, juste une fenêtre.
+You have a folder of TIFFs. You have a spreadsheet of captions.
+**Imprint slides one into the other** — no terminal, no command line, just a window.
 
-<!-- Quand le screenshot sera prêt, le décommenter et ajouter docs/screenshot.png :
-<p align="center">
-  <img src="docs/screenshot.png" alt="Imprint en action" width="720" />
-</p>
--->
+## How it works
 
-## Comment ça marche
+**1. Put your photos and your caption file in the same folder.**
+The file — Excel (`.xlsx`) or CSV — needs two columns: `Filename` and `Description`.
 
-**1. Préparez votre dossier.**
-Mettez ensemble vos photos `.tif` et votre fichier de légendes — Excel ou CSV, avec deux colonnes : `Filename` et `Description`.
+**2. Drag the folder into Imprint.**
+Or click to choose it.
 
-**2. Glissez le dossier dans Imprint.**
-Ou cliquez pour le choisir.
+**3. Done.**
+The caption is written into each photo and appears in the *Description* field of Bridge, Photoshop, Lightroom, and at agencies.
 
-**3. C'est terminé.**
-La description est inscrite dans chaque photo : elle apparaît dans le champ « Légende » de Bridge, Photoshop, Lightroom, et chez les agences.
+## Install
 
-## Installation
+Download **Imprint.dmg** from the [releases page](https://github.com/jerefrer/imprint/releases), open it, drag the icon into Applications. That's it.
 
-Téléchargez **Imprint.dmg** sur la page des [versions](https://github.com/jerefrer/imprint/releases), ouvrez-le, glissez l'icône dans Applications. Voilà.
-
-> Pour Mac Apple Silicon · macOS 14 ou supérieur.
+> Apple Silicon Mac · macOS 14 or later.
 
 ---
 
-<p align="center"><sub>Par <a href="https://github.com/jerefrer">Jeremy</a></sub></p>
+<p align="center"><sub>By <a href="https://github.com/jerefrer">Jeremy</a></sub></p>

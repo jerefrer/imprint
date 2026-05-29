@@ -167,7 +167,7 @@ final class ImprintEngine: ObservableObject {
         let version = String(data: verData, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !version.isEmpty else {
-            throw ImprintError.exifToolUnavailable("Version introuvable sur exiftool.org")
+            throw ImprintError.exifToolUnavailable("Version not found on exiftool.org")
         }
 
         // 2. Télécharge le tarball
@@ -184,7 +184,7 @@ final class ImprintEngine: ObservableObject {
         try tar.run()
         tar.waitUntilExit()
         if tar.terminationStatus != 0 {
-            throw ImprintError.exifToolUnavailable("Décompression impossible (tar)")
+            throw ImprintError.exifToolUnavailable("Extraction failed (tar)")
         }
 
         let exiftoolURL = supportDir
@@ -196,7 +196,7 @@ final class ImprintEngine: ObservableObject {
             ofItemAtPath: exiftoolURL.path
         )
         guard FileManager.default.isExecutableFile(atPath: exiftoolURL.path) else {
-            throw ImprintError.exifToolUnavailable("Binaire introuvable après décompression")
+            throw ImprintError.exifToolUnavailable("Binary not found after extraction")
         }
         return exiftoolURL
     }

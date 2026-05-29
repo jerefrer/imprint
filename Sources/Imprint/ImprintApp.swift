@@ -11,7 +11,7 @@ struct ImprintApp: App {
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(replacing: .help) {
-                Link("Aide Imprint", destination: URL(string: "https://github.com/jerefrer/imprint")!)
+                Link("Imprint Help", destination: URL(string: "https://github.com/jerefrer/imprint")!)
             }
         }
     }
