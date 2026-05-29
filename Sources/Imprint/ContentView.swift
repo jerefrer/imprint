@@ -42,11 +42,13 @@ struct ContentView: View {
                 .foregroundStyle(Theme.ink)
             Spacer()
         }
-        // Padding gauche élargie pour laisser passer les feux tricolores
-        // (la barre de titre est cachée via .windowStyle(.hiddenTitleBar)).
-        .padding(.leading, 80)
+        // Header aligné avec le contenu (drop zone). Les feux tricolores
+        // restent au-dessus verticalement grâce au top padding élargi,
+        // pas besoin de réserver d'espace horizontal pour eux.
+        .padding(.leading, 28)
         .padding(.trailing, 24)
-        .padding(.vertical, 14)
+        .padding(.top, 36)
+        .padding(.bottom, 14)
         .background(Theme.paper)
         .overlay(
             Rectangle()
