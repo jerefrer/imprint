@@ -47,7 +47,7 @@ struct ContentView: View {
         // pas besoin de réserver d'espace horizontal pour eux.
         .padding(.leading, 28)
         .padding(.trailing, 24)
-        .padding(.top, 36)
+        .padding(.top, 14)
         .padding(.bottom, 14)
         .background(Theme.paper)
         .overlay(
