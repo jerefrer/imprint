@@ -24,20 +24,30 @@ if ($file =~ /\.xlsx$/i) {
     @rows = parse_csv($text);
 }
 
-# ---------- 2. Trouver les colonnes Filename / Description ----------
-my ($fcol, $dcol, $header_idx) = (-1, -1, -1);
+# ---------- 2. Trouver les colonnes Filename / Description (mono ou FR+EN) ----------
+# Headers reconnus (insensible a la casse, espaces et parentheses tolerees) :
+#   filename
+#   description                (langue unique)
+#   description (fr) / desc fr / fr / legende (fr) / legende fr
+#   description (en) / desc en / en / legende (en) / legende en / caption (en) / caption
+my ($fcol, $dcol, $dcol_fr, $dcol_en, $header_idx) = (-1, -1, -1, -1, -1);
 for my $i (0 .. $#rows) {
     my @c = @{$rows[$i]};
     for my $j (0 .. $#c) {
         my $v = defined $c[$j] ? lc trim($c[$j]) : '';
-        $fcol = $j if $v eq 'filename';
-        $dcol = $j if $v eq 'description';
+        $v =~ s/[()]//g; $v =~ s/\s+/ /g;
+        $fcol    = $j if $v eq 'filename';
+        $dcol    = $j if $v eq 'description' || $v eq 'legende' || $v eq 'caption';
+        $dcol_fr = $j if $v =~ /^(description|desc|legende|caption)\s*fr$/ || $v eq 'fr';
+        $dcol_en = $j if $v =~ /^(description|desc|legende|caption)\s*en$/ || $v eq 'en';
     }
     if ($fcol >= 0) { $header_idx = $i; last; }
 }
-# Repli : si pas d'entete "Filename", on suppose colonne 0 = nom, colonne 1 = description
+# Si on a une colonne FR ou EN explicite, on ignore $dcol (la colonne « Description » simple)
+my $has_dual = ($dcol_fr >= 0 || $dcol_en >= 0);
+# Repli : si pas d'entete "Filename" detecté, on suppose colonne 0 = nom, colonne 1 = description
 if ($fcol < 0) { $fcol = 0; $dcol = 1; $header_idx = -1; }
-$dcol = $fcol + 1 if $dcol < 0;
+if (!$has_dual && $dcol < 0) { $dcol = $fcol + 1; }
 
 # ---------- 3. Lister les vrais fichiers .tif du dossier (map insensible a la casse) ----------
 opendir(my $dh, $dir) or die "lecture dossier impossible: $!\n";
@@ -57,26 +67,46 @@ my %used;
 my $start = ($header_idx >= 0) ? $header_idx + 1 : 0;
 for my $i ($start .. $#rows) {
     my @c = @{$rows[$i]};
-    my $fname = defined $c[$fcol] ? trim($c[$fcol]) : '';
-    my $desc  = defined $c[$dcol] ? $c[$dcol] : '';
-    next if $fname eq '' && trim($desc) eq '';
-    next if $fname eq '';
-    # Ignorer une eventuelle ligne de titre qui n'est pas un nom de fichier
-    next if $fname !~ /\./ && trim($desc) eq '';
+    my $fname_raw = defined $c[$fcol] ? trim($c[$fcol]) : '';
 
-    my $real = $by_key{ norm_key($fname) };
-    if (!defined $real) {
-        (my $b = $fname) =~ s/\.[^.]+$//;
-        $real = $by_key{ "base:" . lc($b) };
+    # Compose la description : soit la colonne unique, soit FR + ' / ' + EN
+    my $desc;
+    if ($has_dual) {
+        my $fr = ($dcol_fr >= 0 && defined $c[$dcol_fr]) ? rtrim($c[$dcol_fr]) : '';
+        my $en = ($dcol_en >= 0 && defined $c[$dcol_en]) ? rtrim($c[$dcol_en]) : '';
+        if ($fr ne '' && $en ne '') {
+            $desc = "$fr / $en";
+        } elsif ($fr ne '') {
+            $desc = $fr;
+        } else {
+            $desc = $en;
+        }
+    } else {
+        $desc = defined $c[$dcol] ? rtrim($c[$dcol]) : '';
     }
-    if (!defined $real) {
-        push @unmatched, $fname;
-        next;
+
+    next if $fname_raw eq '' && trim($desc) eq '';
+    next if $fname_raw eq '';
+    next if $fname_raw !~ /\./ && trim($desc) eq '';
+
+    # Multi-filename : separer sur , ou ; (avec ou sans espaces)
+    my @candidates = grep { $_ ne '' } map { trim($_) } split /\s*[,;]\s*/, $fname_raw;
+    next unless @candidates;
+
+    for my $fname (@candidates) {
+        my $real = $by_key{ norm_key($fname) };
+        if (!defined $real) {
+            (my $b = $fname) =~ s/\.[^.]+$//;
+            $real = $by_key{ "base:" . lc($b) };
+        }
+        if (!defined $real) {
+            push @unmatched, $fname;
+            next;
+        }
+        $desc =~ s/\r\n/\n/g;
+        push @out, [ "$dir/$real", $desc ];
+        $used{$real} = 1;
     }
-    $desc =~ s/\r\n/\n/g;
-    $desc = rtrim($desc);
-    push @out, [ "$dir/$real", $desc ];
-    $used{$real} = 1;
 }
 
 # ---------- 5. Ecrire le CSV de sortie ----------
@@ -197,6 +227,35 @@ sub read_xlsx {
         my @line = map { defined $cells{$_} ? $cells{$_} : '' } (0 .. $maxcol);
         push @rows, [@line];
     }
+
+    # Cellules mergees : <mergeCell ref="C2:C5"/>. Pour chaque plage, on
+    # propage la valeur de la cellule en haut a gauche dans toutes les cellules
+    # vides de la plage. Ainsi, dans une colonne Description, si Mathieu
+    # merge 5 cellules verticalement avec une seule legende dans la premiere,
+    # les 4 autres heritent automatiquement de cette legende.
+    while ($sheet =~ /<mergeCell\s+ref="([A-Z]+)(\d+):([A-Z]+)(\d+)"/g) {
+        my ($c1, $r1, $c2, $r2) = (col_to_idx($1), $2 + 0, col_to_idx($3), $4 + 0);
+        # Indexation Excel = 1-based, on convertit en 0-based pour les @rows
+        my $top_row = $r1 - 1;
+        my $bot_row = $r2 - 1;
+        next if $top_row > $#rows;
+        # Recupere la valeur de la cellule de tete (top-left)
+        my $value = ($c1 <= $#{$rows[$top_row]}) ? $rows[$top_row][$c1] : '';
+        next unless defined $value && $value ne '';
+        # Propage dans toutes les cellules de la plage qui sont vides
+        for my $r ($top_row .. $bot_row) {
+            next if $r > $#rows;
+            for my $c ($c1 .. $c2) {
+                # Etend la ligne si trop courte
+                while ($#{$rows[$r]} < $c) { push @{$rows[$r]}, ''; }
+                next if $r == $top_row && $c == $c1;   # cellule de tete, deja remplie
+                if (!defined $rows[$r][$c] || $rows[$r][$c] eq '') {
+                    $rows[$r][$c] = $value;
+                }
+            }
+        }
+    }
+
     return @rows;
 }
 
