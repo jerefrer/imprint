@@ -236,8 +236,8 @@
       <img src="icon.png" alt="Imprint" class="app-icon" />
       <h1>Imprint</h1>
       <p class="tagline">Caption your TIFFs in a single drop.</p>
-      <a class="cta" href="https://github.com/jerefrer/imprint/releases/latest">Download Imprint</a>
-      <span class="cta-meta">Apple Silicon Mac · macOS 14 or later</span>
+      <a class="cta" href="https://github.com/jerefrer/imprint/releases/latest/download/Imprint.dmg" id="download-link" rel="noopener">Download Imprint</a>
+      <span class="cta-meta" id="version-info">Apple Silicon Mac · macOS 14 or later</span>
     </section>
 
     <section class="screenshot">
@@ -269,5 +269,34 @@
       <p>By <a href="https://github.com/jerefrer">Jeremy</a> · <a href="https://github.com/jerefrer/imprint">Source on GitHub</a></p>
     </footer>
   </main>
+
+  <script>
+    // Récupère la dernière release pour afficher la version sous le bouton.
+    // Le lien de téléchargement marche déjà sans JS via l'URL magique
+    // /releases/latest/download/Imprint.dmg.
+    (function () {
+      fetch('https://api.github.com/repos/jerefrer/imprint/releases/latest', {
+        headers: { 'Accept': 'application/vnd.github+json' }
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data || !data.tag_name) return;
+          var meta = document.getElementById('version-info');
+          if (!meta) return;
+          var asset = (data.assets || []).find(function (a) {
+            return /\.dmg$/i.test(a.name);
+          });
+          var sizeMB = asset ? Math.round(asset.size / (1024 * 1024) * 10) / 10 : null;
+          meta.textContent = data.tag_name +
+            (sizeMB ? ' · ' + sizeMB + ' MB' : '') +
+            ' · Apple Silicon Mac · macOS 14 or later';
+          if (asset && asset.browser_download_url) {
+            var link = document.getElementById('download-link');
+            if (link) link.href = asset.browser_download_url;
+          }
+        })
+        .catch(function () { /* silent — bouton fonctionne déjà */ });
+    })();
+  </script>
 </body>
 </html>
