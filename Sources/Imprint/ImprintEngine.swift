@@ -366,8 +366,16 @@ final class ImprintEngine: ObservableObject {
                 self[keyPath: buffer] = self[keyPath: buffer][self[keyPath: buffer].index(after: nlIdx)...]
                 guard let line = String(data: lineData, encoding: .utf8) else { continue }
                 if line.hasPrefix("========") {
-                    let trimmed = line.drop { $0 == "=" || $0 == " " }
-                    lastSeen = String(trimmed)
+                    // Format ExifTool -progress : "======== /chemin/full/fichier.tif [N/M]"
+                    // On retire le suffixe " [N/M]" (déjà dans le titre) et on
+                    // ne garde que le nom du fichier (le chemin complet ne sert à rien
+                    // à l'utilisateur, qui sait déjà dans quel dossier il a déposé).
+                    var raw = String(line.drop { $0 == "=" || $0 == " " })
+                    if let range = raw.range(of: #" \[\d+/\d+\]$"#, options: .regularExpression) {
+                        raw.removeSubrange(range)
+                    }
+                    let filename = (raw as NSString).lastPathComponent
+                    lastSeen = filename
                     processedFiles += 1
                     onProgress(processedFiles, lastSeen)
                 }
