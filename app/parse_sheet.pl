@@ -24,30 +24,51 @@ if ($file =~ /\.xlsx$/i) {
     @rows = parse_csv($text);
 }
 
-# ---------- 2. Trouver les colonnes Filename / Description (mono ou FR+EN) ----------
+# ---------- 2. Trouver les colonnes Filename / Description(s) ----------
 # Headers reconnus (insensible a la casse, espaces et parentheses tolerees) :
 #   filename
-#   description                (langue unique)
-#   description (fr) / desc fr / fr / legende (fr) / legende fr
-#   description (en) / desc en / en / legende (en) / legende en / caption (en) / caption
-my ($fcol, $dcol, $dcol_fr, $dcol_en, $header_idx) = (-1, -1, -1, -1, -1);
+#   description                       — colonne unique, langue unique
+#   description (xx) / description xx — code langue 2-5 lettres : FR, EN, ES,
+#                                       DE, IT, PT, ZH, JA, ZH-CN, EN-US…
+#   desc (xx) / legende (xx) / caption (xx) — variantes synonymes acceptees
+#   xx                                — code langue seul (FR, EN, ES…)
+# Si plusieurs colonnes de langue sont presentes, elles sont joinées dans
+# l'ordre des colonnes (gauche → droite) avec « / » comme separateur, pour
+# que l'app fonctionne aussi pour des photographes hispanophones, germanophones, etc.
+my ($fcol, $dcol_single, $header_idx) = (-1, -1, -1);
+my @dcols = ();  # liste des indices de colonnes de description par langue, ordre gauche→droite
 for my $i (0 .. $#rows) {
     my @c = @{$rows[$i]};
+    my @local_dcols;
+    my $local_dcol_single = -1;
     for my $j (0 .. $#c) {
         my $v = defined $c[$j] ? lc trim($c[$j]) : '';
         $v =~ s/[()]//g; $v =~ s/\s+/ /g;
-        $fcol    = $j if $v eq 'filename';
-        $dcol    = $j if $v eq 'description' || $v eq 'legende' || $v eq 'caption';
-        $dcol_fr = $j if $v =~ /^(description|desc|legende|caption)\s*fr$/ || $v eq 'fr';
-        $dcol_en = $j if $v =~ /^(description|desc|legende|caption)\s*en$/ || $v eq 'en';
+        $fcol = $j if $v eq 'filename';
+        # « description » seule
+        if ($v eq 'description' || $v eq 'legende' || $v eq 'caption') {
+            $local_dcol_single = $j;
+        }
+        # « description xx » où xx est un code langue
+        elsif ($v =~ /^(?:description|desc|legende|caption)\s+([a-z]{2}(?:-[a-z]{2})?)$/) {
+            push @local_dcols, $j;
+        }
+        # « xx » seul (juste un code langue)
+        elsif ($v =~ /^[a-z]{2}(?:-[a-z]{2})?$/) {
+            push @local_dcols, $j;
+        }
     }
-    if ($fcol >= 0) { $header_idx = $i; last; }
+    if ($fcol >= 0) {
+        $header_idx = $i;
+        @dcols = @local_dcols;
+        $dcol_single = $local_dcol_single;
+        last;
+    }
 }
-# Si on a une colonne FR ou EN explicite, on ignore $dcol (la colonne « Description » simple)
-my $has_dual = ($dcol_fr >= 0 || $dcol_en >= 0);
-# Repli : si pas d'entete "Filename" detecté, on suppose colonne 0 = nom, colonne 1 = description
-if ($fcol < 0) { $fcol = 0; $dcol = 1; $header_idx = -1; }
-if (!$has_dual && $dcol < 0) { $dcol = $fcol + 1; }
+# Si on a des colonnes de langue explicites, on les utilise. Sinon, la colonne
+# « Description » simple. Sinon repli sur la colonne 1 (col 0 = filename).
+if ($fcol < 0) { $fcol = 0; $dcol_single = 1; $header_idx = -1; }
+if (!@dcols && $dcol_single < 0) { $dcol_single = $fcol + 1; }
 
 # ---------- 3. Lister les vrais fichiers .tif du dossier (map insensible a la casse) ----------
 opendir(my $dh, $dir) or die "lecture dossier impossible: $!\n";
@@ -69,20 +90,18 @@ for my $i ($start .. $#rows) {
     my @c = @{$rows[$i]};
     my $fname_raw = defined $c[$fcol] ? trim($c[$fcol]) : '';
 
-    # Compose la description : soit la colonne unique, soit FR + ' / ' + EN
+    # Compose la description : soit les N colonnes de langue (joinées ' / '
+    # dans l'ordre des colonnes), soit la colonne « Description » simple.
     my $desc;
-    if ($has_dual) {
-        my $fr = ($dcol_fr >= 0 && defined $c[$dcol_fr]) ? rtrim($c[$dcol_fr]) : '';
-        my $en = ($dcol_en >= 0 && defined $c[$dcol_en]) ? rtrim($c[$dcol_en]) : '';
-        if ($fr ne '' && $en ne '') {
-            $desc = "$fr / $en";
-        } elsif ($fr ne '') {
-            $desc = $fr;
-        } else {
-            $desc = $en;
+    if (@dcols) {
+        my @parts;
+        for my $j (@dcols) {
+            my $v = ($j <= $#c && defined $c[$j]) ? rtrim($c[$j]) : '';
+            push @parts, $v if $v ne '';
         }
+        $desc = join(' / ', @parts);
     } else {
-        $desc = defined $c[$dcol] ? rtrim($c[$dcol]) : '';
+        $desc = defined $c[$dcol_single] ? rtrim($c[$dcol_single]) : '';
     }
 
     next if $fname_raw eq '' && trim($desc) eq '';
