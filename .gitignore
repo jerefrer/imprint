@@ -3,7 +3,8 @@ dist/
 .build/
 .build-tmp/
 .swiftpm/
-Package.resolved
+# Package.resolved est commité pour figer la version exacte des dépendances
+# SwiftPM dans le CI (Sparkle 2.x).
 
 # Icône compilée (régénérée depuis Imprint.icon/ par app/make_icns.sh)
 app/Imprint.icns

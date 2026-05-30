@@ -98,12 +98,27 @@ if [ ! -f "$ICNS" ] || { [ -f "$ICON_SRC" ] && [ "$ICON_SRC" -nt "$ICNS" ]; }; t
     "$SRC/make_icns.sh"
 fi
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$SRC/Info.plist"      "$APP/Contents/Info.plist"
 cp "$BIN"                 "$APP/Contents/MacOS/Imprint"
 cp "$SRC/parse_sheet.pl"  "$APP/Contents/Resources/parse_sheet.pl"
 cp "$SRC/Imprint.icns"    "$APP/Contents/Resources/Imprint.icns"
 chmod +x "$APP/Contents/MacOS/Imprint"
+
+# Sparkle.framework (auto-updater) doit être embarqué dans Contents/Frameworks/
+SPARKLE_FW_SRC="$HERE/.build/arm64-apple-macosx/release/Sparkle.framework"
+if [ ! -d "$SPARKLE_FW_SRC" ]; then
+    echo "❌ Sparkle.framework introuvable : $SPARKLE_FW_SRC" >&2
+    echo "   Le build SwiftPM aurait dû la produire. Relancez ./build_app.sh." >&2
+    exit 6
+fi
+cp -R "$SPARKLE_FW_SRC" "$APP/Contents/Frameworks/"
+
+# Le binaire est linké contre @rpath/Sparkle.framework/... — il faut donc lui
+# ajouter @executable_path/../Frameworks dans ses rpaths. install_name_tool
+# retourne != 0 si l'entrée existe déjà (rebuild incrémental) ; on l'ignore.
+install_name_tool -add_rpath @executable_path/../Frameworks \
+    "$APP/Contents/MacOS/Imprint" 2>/dev/null || true
 
 # --- 3. Signature de l'app (hardened runtime, requis pour notarisation) -----
 if [ "$DO_SIGN" -eq 1 ]; then
@@ -114,7 +129,20 @@ if [ "$DO_SIGN" -eq 1 ]; then
         security find-identity -v -p codesigning >&2
         exit 3
     fi
-    echo "→ Signature de l'app (hardened runtime + horodatage)"
+    echo "→ Signature de l'app + Sparkle (hardened runtime + horodatage)"
+    SPARKLE_FW="$APP/Contents/Frameworks/Sparkle.framework"
+    # Bottom-up : XPC services, Autoupdate binary, framework, puis l'app.
+    # L'ordre est critique : codesign d'un conteneur ne valide pas son
+    # contenu, il faut donc signer du plus profond au plus extérieur.
+    for inner in \
+        "$SPARKLE_FW/Versions/B/XPCServices/Downloader.xpc" \
+        "$SPARKLE_FW/Versions/B/XPCServices/Installer.xpc" \
+        "$SPARKLE_FW/Versions/B/Autoupdate" \
+        "$SPARKLE_FW"; do
+        codesign --force --options runtime --timestamp \
+                 --sign "$SIGN_IDENTITY" \
+                 "$inner"
+    done
     codesign --force --options runtime --timestamp \
              --sign "$SIGN_IDENTITY" \
              "$APP"

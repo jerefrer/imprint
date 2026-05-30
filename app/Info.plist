@@ -26,5 +26,15 @@
     <true/>
     <key>NSHumanReadableCopyright</key>
     <string>© 2026 Jeremy Frere</string>
+
+    <!-- Sparkle auto-updater -->
+    <key>SUFeedURL</key>
+    <string>https://jerefrer.github.io/imprint/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>YtVU6XHCC0Mb2F/ZnND0y+TgaRzixHeueYcfbE6bcwY=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
 </dict>
 </plist>

@@ -13,9 +13,20 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Historique complet : on push un commit `appcast` sur main à la fin
+          fetch-depth: 0
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Bump app version from tag
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"   # v1.0.2 -> 1.0.2
+          echo "Bumping Info.plist to version $VERSION"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" app/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" app/Info.plist
 
       - name: Import signing certificate into a temporary keychain
         env:
@@ -41,7 +52,6 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: \
             -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          # Met le trousseau temporaire en tête de la search list
           security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain
 
           echo "→ Identités de signature disponibles :"
@@ -58,7 +68,7 @@ jobs:
             --team-id   "$APPLE_TEAM_ID" \
             --password  "$APPLE_PASSWORD"
 
-      - name: Build, sign, notarize and stamp the DMG
+      - name: Build, sign, notarize and staple the DMG
         env:
           SIGN_IDENTITY:    ${{ secrets.APPLE_SIGNING_IDENTITY }}
           KEYCHAIN_PROFILE: imprint-notarize
@@ -71,6 +81,87 @@ jobs:
           set -euo pipefail
           spctl --assess --type open --context context:primary-signature -v dist/Imprint.dmg
           ls -lh dist/Imprint.dmg
+
+      - name: Sign DMG with Sparkle EdDSA + generate appcast
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          SPARKLE_VERSION=2.9.2
+          curl -fsSL -o /tmp/sparkle.tar.xz \
+            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+          mkdir -p /tmp/sparkle && tar -xf /tmp/sparkle.tar.xz -C /tmp/sparkle
+
+          # sign_update lit la clé privée depuis un fichier (mode -f)
+          KEY_FILE="$RUNNER_TEMP/sparkle-ed-private.key"
+          umask 077
+          printf "%s" "$SPARKLE_ED_PRIVATE_KEY" > "$KEY_FILE"
+
+          SIG_LINE=$(/tmp/sparkle/bin/sign_update -f "$KEY_FILE" dist/Imprint.dmg)
+          rm -f "$KEY_FILE"
+          echo "$SIG_LINE"
+
+          ED_SIG=$(echo "$SIG_LINE" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
+          DMG_LENGTH=$(echo "$SIG_LINE" | sed -n 's/.*length="\([^"]*\)".*/\1/p')
+          if [ -z "$ED_SIG" ] || [ -z "$DMG_LENGTH" ]; then
+            echo "❌ Impossible d'extraire la signature EdDSA / longueur" >&2
+            exit 7
+          fi
+
+          VERSION="${GITHUB_REF_NAME#v}"
+          PUBDATE=$(date -u +"%a, %d %b %Y %H:%M:%S +0000")
+          DMG_URL="https://github.com/jerefrer/imprint/releases/download/${GITHUB_REF_NAME}/Imprint.dmg"
+
+          # Régénère docs/appcast.xml (une seule <item>, la plus récente — c'est
+          # tout ce dont Sparkle a besoin).
+          cat > docs/appcast.xml <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+            <channel>
+              <title>Imprint</title>
+              <link>https://jerefrer.github.io/imprint/appcast.xml</link>
+              <description>Imprint updates feed</description>
+              <language>en</language>
+              <item>
+                <title>Imprint ${GITHUB_REF_NAME}</title>
+                <pubDate>${PUBDATE}</pubDate>
+                <sparkle:version>${VERSION}</sparkle:version>
+                <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+                <enclosure
+                  url="${DMG_URL}"
+                  length="${DMG_LENGTH}"
+                  type="application/octet-stream"
+                  sparkle:edSignature="${ED_SIG}" />
+              </item>
+            </channel>
+          </rss>
+          EOF
+
+          echo "→ Nouveau docs/appcast.xml :"
+          cat docs/appcast.xml
+
+      - name: Commit appcast.xml back to main
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git pull --rebase origin main
+          # Régénère le fichier (au cas où le checkout aurait restauré l'ancien)
+          cp docs/appcast.xml /tmp/appcast.new.xml 2>/dev/null || true
+          # Note: si le tag a été poussé sur main, le rebase trouve déjà notre commit
+          if [ -f /tmp/appcast.new.xml ]; then
+            cp /tmp/appcast.new.xml docs/appcast.xml
+          fi
+          git add docs/appcast.xml
+          if git diff --staged --quiet; then
+            echo "Aucune modification de l'appcast — déjà à jour."
+          else
+            git commit -m "Release ${GITHUB_REF_NAME}: update appcast"
+            git push origin main
+          fi
 
       - name: Create GitHub Release with DMG attached
         uses: softprops/action-gh-release@v2

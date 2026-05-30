@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Imprint</title>
+    <link>https://jerefrer.github.io/imprint/appcast.xml</link>
+    <description>Imprint updates feed</description>
+    <language>en</language>
+    <!-- Auto-généré par .github/workflows/release.yml à chaque tag v*. -->
+  </channel>
+</rss>
