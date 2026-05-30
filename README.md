@@ -38,15 +38,8 @@ Download **Imprint.dmg** from the [releases page](https://github.com/jerefrer/im
 
 ## Support
 
-Imprint is free and unmaintained-by-a-team — just one person scratching an itch. If it earns a place in your workflow, you can [support my work](https://frerejeremy.me) — most of what I do goes toward translation tools for Tibetan Buddhist studies and small social initiatives.
-
----
+Imprint is free. If it earns its place in your workflow, you can [support my work](https://frerejeremy.me) — most of which goes toward translation tools and supporting the spread of the Dharma.
 
 <p align="center">
-  <a href="https://frerejeremy.me">
-    <img src="https://frerejeremy.me/assets/images/jeremy.webp" alt="Jérémy Frère" width="40" height="40" />
-  </a>
-</p>
-<p align="center">
-  <sub>By <a href="https://frerejeremy.me"><strong>Jérémy Frère</strong></a></sub>
+  —&nbsp;<a href="https://frerejeremy.me"><img src="docs/avatar.png" alt="" width="36" height="36" align="middle" /></a>&nbsp;<a href="https://frerejeremy.me"><strong>Jérémy Frère</strong></a>
 </p>
