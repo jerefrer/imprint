@@ -155,16 +155,32 @@ fi
 
 # --- 4. Construction du DMG (glisser-déposer dans Applications) -------------
 echo "→ Construction du DMG"
-# Nettoyage d'éventuels artefacts précédents
 STAGE="$(/usr/bin/mktemp -d /tmp/imprint-dmg.XXXXXX)"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
+# Icône du VOLUME monté : un fichier .VolumeIcon.icns à la racine est
+# auto-détecté par Finder. (hdiutil n'expose plus l'option -volicon
+# depuis macOS Tahoe.)
+cp "$SRC/Imprint.icns" "$STAGE/.VolumeIcon.icns"
 /usr/bin/hdiutil create \
     -volname "$APP_NAME" \
     -srcfolder "$STAGE" \
     -ov -format UDZO \
     "$DMG" >/dev/null
 rm -rf "$STAGE"
+
+# Custom icon sur le FICHIER .dmg lui-même (ce qu'on voit dans le Finder
+# ou Downloads avant de l'ouvrir). hdiutil ne s'en occupe pas — il faut
+# écrire l'icône dans la resource fork du fichier via Rez + SetFile.
+# La séquence est la recette canonique utilisée par create-dmg.
+echo "→ Icône custom sur le fichier .dmg"
+ICON_TMP="$(/usr/bin/mktemp -d /tmp/imprint-icon.XXXXXX)"
+cp "$SRC/Imprint.icns" "$ICON_TMP/icon.icns"
+sips -i "$ICON_TMP/icon.icns" >/dev/null
+xcrun DeRez -only icns "$ICON_TMP/icon.icns" > "$ICON_TMP/icon.rsrc"
+xcrun Rez -append "$ICON_TMP/icon.rsrc" -o "$DMG"
+xcrun SetFile -a C "$DMG"
+rm -rf "$ICON_TMP"
 
 # --- 5. Signature du DMG (recommandé) ---------------------------------------
 if [ "$DO_SIGN" -eq 1 ]; then
