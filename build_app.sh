@@ -131,12 +131,16 @@ if [ "$DO_SIGN" -eq 1 ]; then
     fi
     echo "→ Signature de l'app + Sparkle (hardened runtime + horodatage)"
     SPARKLE_FW="$APP/Contents/Frameworks/Sparkle.framework"
-    # Bottom-up : XPC services, Autoupdate binary, framework, puis l'app.
-    # L'ordre est critique : codesign d'un conteneur ne valide pas son
-    # contenu, il faut donc signer du plus profond au plus extérieur.
+    # Bottom-up : tous les Mach-O / bundles internes de Sparkle, puis le
+    # framework, puis l'app. L'ordre est critique : codesign d'un conteneur
+    # ne re-valide pas son contenu, il faut donc signer du plus profond
+    # au plus extérieur. Updater.app est facile à oublier — sans lui la
+    # notarisation Apple échoue avec « Invalid » et un log mentionnant
+    # « not signed by a valid Developer ID ».
     for inner in \
         "$SPARKLE_FW/Versions/B/XPCServices/Downloader.xpc" \
         "$SPARKLE_FW/Versions/B/XPCServices/Installer.xpc" \
+        "$SPARKLE_FW/Versions/B/Updater.app" \
         "$SPARKLE_FW/Versions/B/Autoupdate" \
         "$SPARKLE_FW"; do
         codesign --force --options runtime --timestamp \
