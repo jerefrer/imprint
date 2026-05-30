@@ -12,7 +12,8 @@ app/Imprint.icns
 # Divers macOS
 .DS_Store
 
-# Données spécifiques à un utilisateur (ne pas distribuer)
+# Données et migration spécifiques à un utilisateur (ne pas distribuer)
 
 
 
+scripts/docx_captions_to_xlsx.py
