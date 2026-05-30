@@ -5,6 +5,17 @@
     <link>https://jerefrer.github.io/imprint/appcast.xml</link>
     <description>Imprint updates feed</description>
     <language>en</language>
-    <!-- Auto-généré par .github/workflows/release.yml à chaque tag v*. -->
+    <item>
+      <title>Imprint v1.2.0</title>
+      <pubDate>Sat, 30 May 2026 09:27:26 +0000</pubDate>
+      <sparkle:version>1.2.0</sparkle:version>
+      <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure
+        url="https://github.com/jerefrer/imprint/releases/download/v1.2.0/Imprint.dmg"
+        length="3387478"
+        type="application/octet-stream"
+        sparkle:edSignature="henqJaK/oC9N+bu8x/cHmnOq0AkD1Dkx0gPARtjNCZWAHQZZ6hYqghxSnH+8yYyT2cKaJobypiCjuqRwzO3RCw==" />
+    </item>
   </channel>
 </rss>
