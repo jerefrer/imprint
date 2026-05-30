@@ -164,18 +164,25 @@ jobs:
       - name: Commit appcast.xml back to main
         run: |
           set -euo pipefail
+
+          # À ce stade le workspace contient deux modifs non-commitées :
+          # 1. app/Info.plist a été bumpé depuis le tag (volontairement éphémère)
+          # 2. docs/appcast.xml a été régénéré (à conserver)
+          # Pour basculer proprement sur main, on sauvegarde l'appcast, on
+          # nettoie le workspace, on checkout main, on ré-applique l'appcast.
+
+          cp docs/appcast.xml /tmp/appcast.new.xml
+          git reset --hard HEAD
+
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout main
-          git pull --rebase origin main
-          # Régénère le fichier (au cas où le checkout aurait restauré l'ancien)
-          cp docs/appcast.xml /tmp/appcast.new.xml 2>/dev/null || true
-          # Note: si le tag a été poussé sur main, le rebase trouve déjà notre commit
-          if [ -f /tmp/appcast.new.xml ]; then
-            cp /tmp/appcast.new.xml docs/appcast.xml
-          fi
+          git pull --ff-only origin main
+
+          cp /tmp/appcast.new.xml docs/appcast.xml
           git add docs/appcast.xml
+
           if git diff --staged --quiet; then
             echo "Aucune modification de l'appcast — déjà à jour."
           else
