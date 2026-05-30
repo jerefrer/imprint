@@ -38,6 +38,6 @@ Download **Imprint.dmg** from the [releases page](https://github.com/jerefrer/im
 
 ## Support
 
-Imprint is free. If it earns its place in your workflow, you can [support my work](https://frerejeremy.me) — most of which goes toward translation tools and supporting the spread of the Dharma.
+Imprint is free. If it earns its place in your workflow, you can [support my work](https://frerejeremy.me). Most of what I build tries to help the Dharma flourish — translation, publication, the practical work that surrounds them — alongside a few compassionate initiatives I believe in.
 
 <a href="https://frerejeremy.me"><img src="docs/avatar.png" alt="" width="20" height="20" align="middle" /></a>&nbsp;<a href="https://frerejeremy.me"><em>Jérémy Frère</em></a>
