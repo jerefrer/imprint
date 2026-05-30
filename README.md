@@ -40,4 +40,4 @@ Download **Imprint.dmg** from the [releases page](https://github.com/jerefrer/im
 
 Imprint is free. If it earns its place in your workflow, you can [support my work](https://frerejeremy.me) — most of which goes toward translation tools and supporting the spread of the Dharma.
 
-<a href="https://frerejeremy.me"><img src="docs/avatar.png" alt="" width="28" height="28" align="middle" /></a>&nbsp;<a href="https://frerejeremy.me"><em>Jérémy Frère</em></a>
+<a href="https://frerejeremy.me"><img src="docs/avatar.png" alt="" width="20" height="20" align="middle" /></a>&nbsp;<a href="https://frerejeremy.me"><em>Jérémy Frère</em></a>
