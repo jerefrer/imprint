@@ -6,16 +6,16 @@
     <description>Imprint updates feed</description>
     <language>en</language>
     <item>
-      <title>Imprint v1.2.0</title>
-      <pubDate>Sat, 30 May 2026 09:27:26 +0000</pubDate>
-      <sparkle:version>1.2.0</sparkle:version>
-      <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
+      <title>Imprint v1.2.1</title>
+      <pubDate>Sat, 30 May 2026 09:40:07 +0000</pubDate>
+      <sparkle:version>1.2.1</sparkle:version>
+      <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <enclosure
-        url="https://github.com/jerefrer/imprint/releases/download/v1.2.0/Imprint.dmg"
-        length="3387478"
+        url="https://github.com/jerefrer/imprint/releases/download/v1.2.1/Imprint.dmg"
+        length="5149425"
         type="application/octet-stream"
-        sparkle:edSignature="henqJaK/oC9N+bu8x/cHmnOq0AkD1Dkx0gPARtjNCZWAHQZZ6hYqghxSnH+8yYyT2cKaJobypiCjuqRwzO3RCw==" />
+        sparkle:edSignature="iViz7TpMpTk6WqnwYgveQEpFzvA5WLmoHzAJJkMeB+I1q/2eTefLzVa3Ax8ETye8A6cbXzPc7KvX3jGWuqrTDQ==" />
     </item>
   </channel>
 </rss>
