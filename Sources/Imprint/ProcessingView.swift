@@ -43,9 +43,6 @@ struct ProcessingView: View {
                     .progressViewStyle(.linear)
                     .tint(Theme.ink)
                 HStack {
-                    Text("\(progress.current) / \(progress.total)")
-                        .font(Theme.smallFont)
-                        .foregroundStyle(Theme.muted)
                     Spacer()
                     Text("\(Int(progress.fraction * 100))%")
                         .font(Theme.smallFont)
