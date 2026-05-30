@@ -11,3 +11,8 @@ app/Imprint.icns
 
 # Divers macOS
 .DS_Store
+
+# Données spécifiques à un utilisateur (ne pas distribuer)
+
+
+
