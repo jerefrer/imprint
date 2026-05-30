@@ -36,6 +36,17 @@ Download **Imprint.dmg** from the [releases page](https://github.com/jerefrer/im
 
 > Apple Silicon Mac · macOS 14 or later.
 
+## Support
+
+Imprint is free and unmaintained-by-a-team — just one person scratching an itch. If it earns a place in your workflow, you can [support my work](https://frerejeremy.me) — most of what I do goes toward translation tools for Tibetan Buddhist studies and small social initiatives.
+
 ---
 
-<p align="center"><sub>By <a href="https://github.com/jerefrer">Jeremy</a></sub></p>
+<p align="center">
+  <a href="https://frerejeremy.me">
+    <img src="https://frerejeremy.me/assets/images/jeremy.webp" alt="Jérémy Frère" width="40" height="40" />
+  </a>
+</p>
+<p align="center">
+  <sub>By <a href="https://frerejeremy.me"><strong>Jérémy Frère</strong></a></sub>
+</p>
