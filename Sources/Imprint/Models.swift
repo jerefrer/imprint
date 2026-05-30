@@ -51,6 +51,7 @@ struct ProcessSummary {
 struct FileResult: Identifiable, Equatable {
     let id = UUID()
     let filename: String
+    let caption: String?
     let status: Status
 
     enum Status: Equatable {

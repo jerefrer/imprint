@@ -52,30 +52,30 @@ final class ImprintEngine: ObservableObject {
             }
 
             updateProgress(.init(phase: .stamping, total: parseResult.toStamp))
-            let stamped = try await runExifTool(
+            try await runExifTool(
                 exiftool: exiftool,
                 csvPath: parseResult.csvPath,
                 folder: folder
             )
-
+            // exiftool a tourné jusqu'au bout sans exception : toutes les lignes
+            // du CSV ont été appliquées (sinon runExifTool aurait throw).
             try? FileManager.default.removeItem(at: URL(fileURLWithPath: parseResult.csvPath))
 
-            // Compose file list: each .tif stamped, then untagged .tifs, then sheet rows without files
             var files: [FileResult] = []
-            for name in parseResult.stampedFilenames {
-                files.append(.init(filename: name, status: .stamped))
+            for entry in parseResult.stamped {
+                files.append(.init(filename: entry.filename, caption: entry.caption, status: .stamped))
             }
             for name in parseResult.untaggedTifs {
-                files.append(.init(filename: name, status: .noCaption))
+                files.append(.init(filename: name, caption: nil, status: .noCaption))
             }
             for name in parseResult.unmatchedRows {
-                files.append(.init(filename: name, status: .missingFile))
+                files.append(.init(filename: name, caption: nil, status: .missingFile))
             }
 
             let summary = ProcessSummary(
                 folder: folder,
                 sheetName: sheet.lastPathComponent,
-                updatedCount: stamped,
+                updatedCount: parseResult.toStamp,
                 files: files
             )
             state = .done(.success(summary))
@@ -205,10 +205,10 @@ final class ImprintEngine: ObservableObject {
 
     struct ParseResult {
         let csvPath: String
-        let toStamp: Int                  // ASSOCIES
-        let stampedFilenames: [String]    // extracted from CSV
-        let unmatchedRows: [String]       // NON_TROUVES : noms du tableau sans .tif
-        let untaggedTifs: [String]        // TIF_SANS_LEGENDE : .tif sans ligne
+        let toStamp: Int                                            // ASSOCIES
+        let stamped: [(filename: String, caption: String)]          // from CSV
+        let unmatchedRows: [String]                                 // NON_TROUVES
+        let untaggedTifs: [String]                                  // TIF_SANS_LEGENDE
     }
 
     private func runParser(folder: URL, sheet: URL) throws -> ParseResult {
@@ -235,25 +235,20 @@ final class ImprintEngine: ObservableObject {
             throw ImprintError.parseFailed(msg)
         }
 
-        // Écrit le CSV
+        // Écrit le CSV (utilisé par exiftool ensuite)
         try stdout.write(to: URL(fileURLWithPath: csvPath))
 
-        // Extrait les noms à partir du CSV stdout (colonne SourceFile)
+        // Parse CSV proprement (gère les champs multilignes entre guillemets,
+        // les "" échappés). Skip header row. Colonnes : SourceFile, EXIF:Imag…,
+        // IPTC:Caption-Abstract, XMP-dc:Description.
         let csvText = String(data: stdout, encoding: .utf8) ?? ""
-        var stampedFilenames: [String] = []
-        for line in csvText.split(separator: "\n").dropFirst() {
-            // ligne CSV : "/path/to/file.tif","...","...","..."
-            let parts = line.split(separator: ",", maxSplits: 1, omittingEmptySubsequences: false)
-            if let first = parts.first {
-                var s = String(first)
-                if s.hasPrefix("\"") { s.removeFirst() }
-                if s.hasSuffix("\"") { s.removeLast() }
-                if let url = URL(string: "file://" + s) {
-                    stampedFilenames.append(url.lastPathComponent)
-                } else if let last = s.split(separator: "/").last {
-                    stampedFilenames.append(String(last))
-                }
-            }
+        let rows = ImprintEngine.parseCSVRows(csvText)
+        var stamped: [(filename: String, caption: String)] = []
+        for row in rows.dropFirst() where row.count >= 2 {
+            let path = row[0]
+            let caption = row[1]
+            let filename = (path as NSString).lastPathComponent
+            stamped.append((filename: filename, caption: caption))
         }
 
         // Parse stderr pour stats + listes
@@ -285,28 +280,103 @@ final class ImprintEngine: ObservableObject {
         return ParseResult(
             csvPath: csvPath,
             toStamp: associated,
-            stampedFilenames: stampedFilenames,
+            stamped: stamped,
             unmatchedRows: unmatched,
             untaggedTifs: untagged
         )
+    }
+
+    /// Parseur CSV minimaliste qui respecte les guillemets et les "" échappés.
+    /// Suffisant pour le format produit par parse_sheet.pl (tous les champs quotés).
+    static func parseCSVRows(_ text: String) -> [[String]] {
+        var rows: [[String]] = []
+        var currentRow: [String] = []
+        var currentField = ""
+        var inQuotes = false
+        var idx = text.startIndex
+
+        while idx < text.endIndex {
+            let c = text[idx]
+            if inQuotes {
+                if c == "\"" {
+                    let next = text.index(after: idx)
+                    if next < text.endIndex && text[next] == "\"" {
+                        currentField.append("\"")
+                        idx = text.index(after: next)
+                    } else {
+                        inQuotes = false
+                        idx = text.index(after: idx)
+                    }
+                } else {
+                    currentField.append(c)
+                    idx = text.index(after: idx)
+                }
+            } else {
+                switch c {
+                case "\"":
+                    inQuotes = true
+                    idx = text.index(after: idx)
+                case ",":
+                    currentRow.append(currentField)
+                    currentField = ""
+                    idx = text.index(after: idx)
+                case "\n":
+                    currentRow.append(currentField)
+                    rows.append(currentRow)
+                    currentRow = []
+                    currentField = ""
+                    idx = text.index(after: idx)
+                case "\r":
+                    idx = text.index(after: idx)
+                default:
+                    currentField.append(c)
+                    idx = text.index(after: idx)
+                }
+            }
+        }
+        if !currentField.isEmpty || !currentRow.isEmpty {
+            currentRow.append(currentField)
+            rows.append(currentRow)
+        }
+        return rows
     }
 
     // MARK: - ExifTool execution
 
     /// État mutable partagé entre les readability handlers et le termination handler.
     /// Encapsulé dans une classe pour éviter les captures mutables (Swift 6 strict concurrency).
-    /// Les handlers de stdout et stderr écrivent dans des propriétés distinctes, et le termination
-    /// handler ne lit qu'après que le process est terminé — pas de course possible.
     private final class ExifToolRunState: @unchecked Sendable {
         var stdoutBuffer = Data()
         var stderrBuffer = Data()
+        var stdoutCollected = Data()   // pour le diagnostic d'erreur
         var processedFiles = 0
         var lastSeen: String?
-        var updatedCount = 0
+
+        /// Append le chunk dans le buffer pointé par keyPath, puis scanne pour
+        /// les lignes "======== filename" (-progress d'exiftool). Pour chaque
+        /// fichier vu, incrémente le compteur et appelle onProgress.
+        func scanForProgress(
+            chunk: Data,
+            buffer: ReferenceWritableKeyPath<ExifToolRunState, Data>,
+            onProgress: (Int, String?) -> Void
+        ) {
+            self[keyPath: buffer].append(chunk)
+            while let nlIdx = self[keyPath: buffer].firstIndex(of: 0x0a) {
+                let lineData = self[keyPath: buffer][..<nlIdx]
+                self[keyPath: buffer] = self[keyPath: buffer][self[keyPath: buffer].index(after: nlIdx)...]
+                guard let line = String(data: lineData, encoding: .utf8) else { continue }
+                if line.hasPrefix("========") {
+                    let trimmed = line.drop { $0 == "=" || $0 == " " }
+                    lastSeen = String(trimmed)
+                    processedFiles += 1
+                    onProgress(processedFiles, lastSeen)
+                }
+            }
+        }
     }
 
-    private func runExifTool(exiftool: URL, csvPath: String, folder: URL) async throws -> Int {
-        try await withCheckedThrowingContinuation { continuation in
+    private func runExifTool(exiftool: URL, csvPath: String, folder: URL) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let process = Process()
             process.executableURL = exiftool
             process.arguments = [
@@ -332,47 +402,45 @@ final class ImprintEngine: ObservableObject {
             stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
                 let chunk = handle.availableData
                 if chunk.isEmpty { return }
-                runState.stdoutBuffer.append(chunk)
-                while let nlIdx = runState.stdoutBuffer.firstIndex(of: 0x0a) {
-                    let lineData = runState.stdoutBuffer[..<nlIdx]
-                    runState.stdoutBuffer = runState.stdoutBuffer[runState.stdoutBuffer.index(after: nlIdx)...]
-                    guard let line = String(data: lineData, encoding: .utf8) else { continue }
-                    // ExifTool avec -progress affiche "======== filename" pour chaque fichier
-                    if line.hasPrefix("========") {
-                        let trimmed = line.drop { $0 == "=" || $0 == " " }
-                        runState.lastSeen = String(trimmed)
-                        runState.processedFiles += 1
-                        let snapshotProcessed = runState.processedFiles
-                        let snapshotFile = runState.lastSeen
-                        Task { @MainActor in
-                            guard let engine = weakSelf else { return }
-                            if case .processing(var p) = engine.state {
-                                p.current = snapshotProcessed
-                                p.currentFile = snapshotFile
-                                engine.state = .processing(p)
-                            }
+                runState.stdoutCollected.append(chunk)
+                runState.scanForProgress(chunk: chunk, buffer: \.stdoutBuffer) { processed, file in
+                    Task { @MainActor in
+                        guard let engine = weakSelf else { return }
+                        if case .processing(var p) = engine.state {
+                            p.current = processed
+                            p.currentFile = file
+                            engine.state = .processing(p)
                         }
-                    } else if let count = ImprintEngine.parseUpdatedCount(line) {
-                        runState.updatedCount = count
                     }
                 }
             }
             stderrPipe.fileHandleForReading.readabilityHandler = { handle in
                 let chunk = handle.availableData
-                if !chunk.isEmpty { runState.stderrBuffer.append(chunk) }
+                if chunk.isEmpty { return }
+                runState.scanForProgress(chunk: chunk, buffer: \.stderrBuffer) { processed, file in
+                    Task { @MainActor in
+                        guard let engine = weakSelf else { return }
+                        if case .processing(var p) = engine.state {
+                            p.current = processed
+                            p.currentFile = file
+                            engine.state = .processing(p)
+                        }
+                    }
+                }
             }
 
             process.terminationHandler = { proc in
                 stdoutPipe.fileHandleForReading.readabilityHandler = nil
                 stderrPipe.fileHandleForReading.readabilityHandler = nil
 
-                if proc.terminationStatus != 0 && runState.updatedCount == 0 {
-                    let msg = String(data: runState.stderrBuffer, encoding: .utf8)
-                        ?? "code \(proc.terminationStatus)"
+                if proc.terminationStatus != 0 {
+                    let stderr = String(data: runState.stderrBuffer, encoding: .utf8) ?? ""
+                    let stdout = String(data: runState.stdoutCollected, encoding: .utf8) ?? ""
+                    let msg = !stderr.isEmpty ? stderr : (stdout.isEmpty ? "code \(proc.terminationStatus)" : stdout)
                     continuation.resume(throwing: ImprintError.exifToolFailed(msg))
                     return
                 }
-                continuation.resume(returning: runState.updatedCount)
+                continuation.resume(returning: ())
             }
 
             do {
@@ -381,18 +449,5 @@ final class ImprintEngine: ObservableObject {
                 continuation.resume(throwing: ImprintError.exifToolFailed(error.localizedDescription))
             }
         }
-    }
-
-    /// Extrait "N" depuis "N image files updated" (présent en fin de sortie d'ExifTool)
-    nonisolated static func parseUpdatedCount(_ line: String) -> Int? {
-        // Cherche "<digits> image files updated" ou "1 image files updated"
-        let pattern = #"^\s*(\d+)\s+image\s+files?\s+updated"#
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        let range = NSRange(line.startIndex..., in: line)
-        guard let match = regex.firstMatch(in: line, range: range),
-              let numRange = Range(match.range(at: 1), in: line) else {
-            return nil
-        }
-        return Int(line[numRange])
     }
 }

@@ -117,21 +117,28 @@ private struct FileRow: View {
     let file: FileResult
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             statusIcon
-                .frame(width: 22)
+                .frame(width: 18)
             Text(file.filename)
                 .font(Theme.monoFont)
                 .foregroundStyle(Theme.ink)
                 .lineLimit(1)
                 .truncationMode(.middle)
-            Spacer()
+                .frame(width: 160, alignment: .leading)
+            Text(captionDisplay)
+                .font(.system(size: 12))
+                .foregroundStyle(file.caption == nil ? Theme.muted : Theme.inkSoft)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Text(statusLabel)
                 .font(Theme.smallFont)
-                .foregroundStyle(Theme.muted)
+                .foregroundStyle(statusColor)
+                .frame(width: 90, alignment: .trailing)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 9)
+        .padding(.vertical, 8)
     }
 
     @ViewBuilder
@@ -149,9 +156,24 @@ private struct FileRow: View {
     private var statusLabel: String {
         switch file.status {
         case .stamped:     return "imprinted"
-        case .noCaption:   return "no caption in spreadsheet"
-        case .missingFile: return "photo missing from folder"
+        case .noCaption:   return "no caption"
+        case .missingFile: return "no photo"
         }
+    }
+
+    private var statusColor: Color {
+        switch file.status {
+        case .stamped:                  return Theme.muted
+        case .noCaption, .missingFile:  return Theme.warning
+        }
+    }
+
+    private var captionDisplay: String {
+        guard let raw = file.caption?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty else { return "—" }
+        // Aplatit les sauts de ligne pour rester sur une seule ligne
+        return raw.replacingOccurrences(of: "\n", with: " ")
+                  .replacingOccurrences(of: "\r", with: " ")
     }
 }
 
