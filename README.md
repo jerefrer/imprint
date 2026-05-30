@@ -30,6 +30,14 @@ Or click to choose it.
 **3. Done.**
 The caption is written into each photo and appears in the *Description* field of Bridge, Photoshop, Lightroom, and at agencies.
 
+## Inside the spreadsheet
+
+Two columns minimum: `Filename` and `Description`. From there, optional:
+
+- Split into `Description (FR)` + `Description (EN)` — Imprint joins them.
+- List several filenames in one cell (comma-separated) to share a caption across photos.
+- Merge Description cells vertically to apply the same caption to a range of rows.
+
 ## Install
 
 Download **Imprint.dmg** from the [releases page](https://github.com/jerefrer/imprint/releases), open it, drag the icon into Applications. That's it.

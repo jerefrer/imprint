@@ -199,6 +199,54 @@
       color: var(--ink);
     }
 
+    /* Tips */
+    .tips {
+      margin-bottom: 96px;
+      padding: 26px 30px;
+      background: var(--paper-soft);
+      border-left: 3px solid var(--ink-soft);
+      border-radius: 8px;
+    }
+    .tips h2 {
+      font-family: ui-serif, "New York", Cambria, Georgia, serif;
+      font-weight: 400;
+      font-size: 22px;
+      margin-bottom: 10px;
+      color: var(--ink);
+    }
+    .tips p {
+      color: var(--ink-soft);
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .tips ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .tips li {
+      color: var(--ink-soft);
+      font-size: 14px;
+      padding-left: 18px;
+      position: relative;
+      margin-bottom: 6px;
+      line-height: 1.55;
+    }
+    .tips li::before {
+      content: "·";
+      position: absolute;
+      left: 6px;
+      color: var(--muted);
+      font-weight: bold;
+    }
+    .tips code {
+      background: var(--paper);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 12.5px;
+      color: var(--ink);
+    }
+
     /* Footer */
     footer {
       padding-top: 48px;
@@ -290,6 +338,16 @@
           <p>Captions land in the <em>Description</em> field, ready for Bridge, Photoshop, Lightroom, agencies.</p>
         </div>
       </div>
+    </section>
+
+    <section class="tips">
+      <h2>Inside the spreadsheet</h2>
+      <p>Two columns minimum: <code>Filename</code> and <code>Description</code>. From there, optional:</p>
+      <ul>
+        <li>Split into <code>Description (FR)</code> + <code>Description (EN)</code> — Imprint joins them.</li>
+        <li>List several filenames in one cell (comma-separated) to share a caption across photos.</li>
+        <li>Merge Description cells vertically to apply the same caption to a range of rows.</li>
+      </ul>
     </section>
 
     <footer>
